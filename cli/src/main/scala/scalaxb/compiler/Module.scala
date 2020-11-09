@@ -144,7 +144,7 @@ trait Module {
 
   def processFiles(files: Seq[File], config: Config): List[File] = {
     val (source, outfiles) = infoFiles(files, config)
-    outfiles map { x =>
+    outfiles foreach { x =>
       println("generated " + x + ".")
       logger.info("generated " + x + ".") }
     outfiles
