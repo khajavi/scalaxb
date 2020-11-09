@@ -370,8 +370,10 @@ trait Module {
 
   def generateRuntimeFiles[To](context: Context, config: Config)(implicit evTo: CanBeWriter[To]): List[To]
 
+  type FileNamePart = String
+  type PkgName = String
   // returns a seq of package name, snippet, and file name part tuple
-  def generate(schema: Schema, part: String, context: Context, config: Config): Seq[(Option[String], Snippet, String)]
+  def generate(schema: Schema, part: String, context: Context, config: Config): Seq[(Option[PkgName], Snippet, FileNamePart)]
 
   def generateProtocol(snippet: Snippet,
     context: Context, config: Config): Seq[Node]

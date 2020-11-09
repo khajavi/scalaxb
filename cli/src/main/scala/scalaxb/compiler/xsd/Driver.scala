@@ -47,7 +47,7 @@ class Driver extends Module { driver =>
   override def packageName(namespace: Option[String], context: Context): Option[String] =
     (new PackageName {}).packageName(namespace, context)
 
-  override def generate(xsd: Schema, part: String, context: Context, cnfg: Config) = {
+  override def generate(xsd: Schema, part: FileNamePart, context: Context, cnfg: Config): Seq[(Option[PkgName], Snippet, FileNamePart)] = {
     val pkg = packageName(xsd.targetNamespace, context)
     Seq((pkg, Snippet(headerSnippet(pkg),
       (new GenSource(xsd, context, cnfg)).run), part))
