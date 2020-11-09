@@ -151,10 +151,10 @@ trait Module {
   }
 
   def infoFiles(files: Seq[File], config: Config): (CompileSource[File], List[File]) = {
-    implicit val fileWriter = new CanBeWriter[File] {
+    implicit val fileWriter: CanBeWriter[File] = new CanBeWriter[File] {
       override def toWriter(value: File) = new PrintWriter(new java.io.OutputStreamWriter(
           new java.io.FileOutputStream(value), encoding))
-      override def newInstance(packageName: Option[String], fileName: String) = {
+      override def newInstance(packageName: Option[String], fileName: String): File = {
         val dir = if (config.packageDir) packageDir(packageName, config.outdir)
                   else config.outdir
         dir.mkdirs()
@@ -210,14 +210,14 @@ trait Module {
 
     logger.debug("%s", files.toString())
     val context = buildContext
-    val importables0 = ListMap[From, Importable](files map { f =>
+    val importables0 = mutable.ListMap[From, Importable](files map { f =>
       f -> toImportable(ev.toURI(f), ev.toRawSchema(f))}: _*)
     val importables = ListBuffer[(Importable, From)](files map { f => importables0(f) -> f }: _*)
-    val schemas = ListMap[Importable, Schema](importables map { case (importable, file) =>
+    val schemas = mutable.ListMap[Importable, Schema](importables map { case (importable, file) =>
       val s = parse(importable, context)
       (importable, s) } toSeq: _*)
 
-    val additionalImportables = ListMap.empty[Importable, File]
+    val additionalImportables = mutable.ListMap.empty[Importable, File]
 
     // recursively add missing files
     def addMissingFiles(): Unit = {
