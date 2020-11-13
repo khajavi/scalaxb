@@ -256,18 +256,18 @@ class GenSource(val schema: SchemaDecl,
     val unmixedParserList = flatParticles map { buildParser(_, effectiveMixed, effectiveMixed, false) }
     val parserList = if (effectiveMixed) buildTextParser :: (unmixedParserList flatMap { List(_, buildTextParser) })
       else unmixedParserList
-    val parserVariableList = ( 0 to parserList.size - 1) map { buildSelector }
+    val parserVariableList = parserList.indices map { buildSelector }
     
     val longAll: Boolean = primary match {
         case Some(all: AllDecl) if isLongAll(all, decl.namespace, decl.family) => true
         case _ => false
       }
-    val particleArgs = if (effectiveMixed) (0 to parserList.size - 1).toList map { i =>
+    val particleArgs = if (effectiveMixed) parserList.indices.toList map { i =>
         if (i % 2 == 1) buildArgForMixed(flatParticles((i - 1) / 2), i, false)
         else buildArgForOptTextRecord(i) }
       else primary match {
         case Some(all: AllDecl) => all.particles map { buildArgForAll(_, longAll) }
-        case _ => (0 to flatParticles.size - 1).toList map { i => buildArg(flatParticles(i), i) }
+        case _ => flatParticles.indices.toList map { i => buildArg(flatParticles(i), i) }
       }
     
     def gettersAndIfMutableSetters: List[(String, Option[String])] =
@@ -278,7 +278,7 @@ class GenSource(val schema: SchemaDecl,
         (if (longAttribute) generateAccessors(attributes) else Nil)
 
     // There should be a better way to flatten a List[(String, Option[String])] to List[String]
-    val accessors: List[String] = gettersAndIfMutableSetters.map{ p => List(List(p._1), p._2.toList)}.flatten.flatten
+    val accessors: List[String] = gettersAndIfMutableSetters.flatMap { p => List(List(p._1), p._2.toList) }.flatten
 
     logger.debug("makeCaseClassWithType: generateAccessors " + accessors)
 
@@ -383,7 +383,7 @@ class GenSource(val schema: SchemaDecl,
           case SimpContExtensionDecl(base: XsTypeSymbol, _)         => simpleContentString(base)
           case _ =>
             if (childElemParams.isEmpty) "Nil"
-            else if (childElemParams.size == 1) "(" + buildXMLString(childElemParams(0)) + ")"
+            else if (childElemParams.size == 1) "(" + buildXMLString(childElemParams.head) + ")"
             else childElemParams.map(x =>
               buildXMLString(x)).mkString(if (config.useLists) "List.concat(" else "Seq.concat(", "," + newline + indent(4), ")")
         }
@@ -392,11 +392,11 @@ class GenSource(val schema: SchemaDecl,
       {childString(decl)}</source>
     }
 
-    val groups = filterGroup(decl).distinct filter { g => primaryCompositor(g).particles.size > 0 }
+    val groups = filterGroup(decl).distinct filter { g => primaryCompositor(g).particles.nonEmpty }
     val defaultFormatSuperNames: List[String] = "scalaxb.ElemNameParser[" + fqn + "]" :: groups.map(g =>
       buildFormatterName(g.namespace, groupTypeName(g))).distinct
     
-    val caseClassCode = <source>{ buildComment(decl) }case class {localName}({paramsString}){extendString}{ if (accessors.size == 0) ""
+    val caseClassCode = <source>{ buildComment(decl) }case class {localName}({paramsString}){extendString}{ if (accessors.isEmpty) ""
       else " {" + newline +
         indent(1) + accessors.mkString(newline + indent(1)) + newline +
         "}" + newline}
@@ -501,13 +501,13 @@ class GenSource(val schema: SchemaDecl,
       (paramList.head.cardinality == Multiple) &&
       (!paramList.head.attribute)
     val paramsString = if (hasSequenceParam)
-        makeParamName(paramList.head.name, false) + ": " + paramList.head.singleTypeName + "*"
+        makeParamName(paramList.head.name, attribute = false) + ": " + paramList.head.singleTypeName + "*"
       else paramList.map(_.toScalaCode_possiblyMutable).mkString("," + newline + indent(1))
     def makeWritesXML = <source>    def writes(__obj: {fqn}, __namespace: Option[String], __elementLabel: Option[String], 
         __scope: scala.xml.NamespaceBinding, __typeAttribute: Boolean): scala.xml.NodeSeq =
       {childString}</source>
     def childString = if (paramList.isEmpty) "Nil"
-      else if (paramList.size == 1) buildXMLString(paramList(0))
+      else if (paramList.size == 1) buildXMLString(paramList.head)
       else paramList.map(x => 
         buildXMLString(x)).mkString(if (config.useLists) "List.concat(" else "Seq.concat(", "," + newline + indent(4), ")")
     val superNames: List[String] = buildOptions(seq)
@@ -553,7 +553,7 @@ class GenSource(val schema: SchemaDecl,
       if (groups.isEmpty) List("scalaxb.AnyElemNameParser")
       else groups.map { g => buildFormatterName(g.namespace, groupTypeName(g)) }
     
-    val defaultFormats = if (compositor.particles.size == 0) <source></source>
+    val defaultFormats = if (compositor.particles.isEmpty) <source></source>
       else <source>{ buildComment(group) }  trait {formatterName} extends {superNames.mkString(" with ")} {{
     def parse{localName}(node: scala.xml.Node, stack: List[scalaxb.ElemName]): Parser[{param.baseTypeName}] =
       {parser}
@@ -758,13 +758,12 @@ object {localName} {{
     }
     
     def addIfContains(choice: ChoiceDecl): Unit = {
-      choice.particles foreach { _ match {
-          case ch: ChoiceDecl =>
-            addIfMatch(ch, choice)
-            addIfContains(ch)
-          case comp: HasParticle => addIfMatch(comp, choice)
-          case _ =>
-        }
+      choice.particles foreach {
+        case ch: ChoiceDecl =>
+          addIfMatch(ch, choice)
+          addIfContains(ch)
+        case comp: HasParticle => addIfMatch(comp, choice)
+        case _ =>
       }
     }
 
