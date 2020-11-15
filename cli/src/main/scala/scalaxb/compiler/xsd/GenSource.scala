@@ -22,9 +22,9 @@
 
 package scalaxb.compiler.xsd
 
-import scalaxb.compiler.{Config, Snippet, CaseClassTooLong, Log}
+import scalaxb.compiler.{Config, Log, Snippet}
+
 import scala.collection.mutable
-import scala.collection.{Map}
 import scala.xml._
 
 class GenSource(val schema: SchemaDecl,
@@ -43,7 +43,108 @@ class GenSource(val schema: SchemaDecl,
     val snippets = mutable.ListBuffer.empty[Snippet]
     snippets += Snippet(makeSchemaComment, Nil, Nil, Nil)
 
-    if(config.generateLens){
+    val dataTimeGenerator =
+      """
+        |import org.scalacheck.Gen
+        |import org.joda.time._
+        |import com.fortysevendeg.scalacheck.datetime.instances.joda._
+        |import com.fortysevendeg.scalacheck.datetime.GenDateTime.genDateTimeWithinRange
+        |import javax.xml.datatype.XMLGregorianCalendar
+        |import javax.xml.datatype.DatatypeFactory
+        |import javax.xml.datatype.DatatypeConstants
+        |
+        |def dateTimeGen(from: DateTime, range: Period): Gen[DateTime] =
+        |  genDateTimeWithinRange(from, range)
+        |def xmlDateTimeGen(dateTimeGen: Gen[DateTime]): Gen[XMLGregorianCalendar] =
+        |  for { date <- dateTimeGen } yield DatatypeFactory
+        |    .newInstance()
+        |    .newXMLGregorianCalendar(date.toGregorianCalendar)
+        |val pastDateTimeGen: Gen[XMLGregorianCalendar] = xmlGen(
+        |  genDateTimeWithinRange(DateTime.now, Period.years(-100))
+        |)
+        |val xmlDateTimeGenPast: Gen[XMLGregorianCalendar] = for {
+        |  date <- pastDateTimeGen
+        |} yield DatatypeFactory
+        |  .newInstance()
+        |  .newXMLGregorianCalendar(date.toGregorianCalendar())
+        |
+        |import com.fortysevendeg.scalacheck.datetime.joda.granularity.hours
+        |def dateGen(from: DateTime, range: Period): Gen[DateTime] =
+        |  genDateTimeWithinRange(from, range)
+        |def xmlGen(dateGen: Gen[DateTime]): Gen[XMLGregorianCalendar] =
+        |  for { date <- dateGen } yield DatatypeFactory
+        |    .newInstance()
+        |    .newXMLGregorianCalendarDate(
+        |      date.getYear(),
+        |      date.getMonthOfYear(),
+        |      date.getDayOfMonth(),
+        |      DatatypeConstants.FIELD_UNDEFINED
+        |    )
+        |val xmlDateGenPast: Gen[XMLGregorianCalendar] = xmlGen(
+        |  genDateTimeWithinRange(DateTime.now, Period.years(-100))
+        |)
+        |
+        |""".stripMargin
+
+    val gensource = schema.topTypes.map {
+      case (typeName, typeDecl) => {
+        val (forlines, yieldparams) = typeDecl match {
+          case ComplexTypeDecl(_, name, _, _, _, content, _, _) =>
+            content match {
+              case ComplexContentDecl(content) =>
+                content match {
+                  case CompContExtensionDecl(base, compositor, attributes) => ("", "")
+                  case CompContRestrictionDecl(base, compositor, attributes) =>
+                    compositor match {
+                      case Some(value) => value match {
+                        case SequenceDecl(namespace, particles, minOccurs, maxOccurs, uniqueId) =>
+                          val (a, b) = particles.map {
+                            case particle: HasParticle => ("", "")
+                            case ElemRef(namespace, name, minOccurs, maxOccurs, nillable) => ("", "")
+                            case ElemDecl(namespace, name, typeSymbol, defaultValue, fixedValue, minOccurs, maxOccurs, nillable, global, qualified, substitutionGroup, annotation) =>
+                              typeSymbol.name match {
+                                case "javax.xml.datatype.XMLGregorianCalendar" => (s"${name} <- pastDateTimeGen", name)
+                              }
+                            case AnyDecl(minOccurs, maxOccurs, namespaceConstraint, processContents, uniqueId) => ("", "")
+                          }.unzip
+                          (a.mkString("\n"), b.mkString(","))
+                        case ChoiceDecl(namespace, particles, minOccurs, maxOccurs, uniqueId) => ("", "")
+                        case AllDecl(namespace, particles, minOccurs, maxOccurs, uniqueId) => ("", "")
+                        case GroupRef(namespace, name, particles, minOccurs, maxOccurs) => ("", "")
+                        case GroupDecl(namespace, name, particles, minOccurs, maxOccurs, annotation) => ("", "")
+                      }
+                      case None => ("", "")
+                    }
+                  case SimpContExtensionDecl(base, attributes) => ("", "")
+                  case SimpContRestrictionDecl(base, simpleType, facets, attributes) => ("", "")
+                  case _ => ("", "")
+                }
+              case SimpleContentDecl(content) => ("", "")
+              case _ => ("", "")
+            }
+          case SimpleTypeDecl(namespace, name, family, content, annotation) => ("", "")
+          case _ => ("", "")
+        }
+        s"""
+           |object ${typeName} {
+           |  ${dataTimeGenerator}
+           |  
+           |  def ${typeName.toLowerCase}Gen = for {
+           |    ${forlines}
+           |  } yield ${typeName}(${yieldparams})
+           |}
+           |""".stripMargin
+      }
+    }.mkString("\n\n")
+   
+    
+    val generateScalacheckGenerators = true
+    
+    if (generateScalacheckGenerators) {
+      snippets += Snippet(<source>{gensource}</source>, Nil, Nil, Nil)
+    }
+
+    if (config.generateLens) {
       snippets += Snippet(<source>{genLens.buildImport}</source>, Nil, Nil, Nil)
     }
     schema.typeList map {
