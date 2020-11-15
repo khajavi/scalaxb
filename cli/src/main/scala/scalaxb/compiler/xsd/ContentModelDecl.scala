@@ -34,7 +34,7 @@ case class SimpContRestrictionDecl(base: XsTypeSymbol, simpleType: Option[XsType
   attributes: List[AttributeLike]) extends ContentTypeDecl with ComplexTypeContent
 
 object SimpContRestrictionDecl {
-  def fromXML(node: scala.xml.Node, family: List[String], config: ParserConfig) = {
+  def fromXML(node: scala.xml.Node, family: List[String], config: ParserConfig): SimpContRestrictionDecl = {
     val simpleType = (node \ "simpleType").headOption map { x =>
       val decl = SimpleTypeDecl.fromXML(x, family, config)
       config.typeList += decl
@@ -171,7 +171,7 @@ object SimpTypRestrictionDecl {
 case class SimpTypListDecl(itemType: XsTypeSymbol) extends ContentTypeDecl
 
 object SimpTypListDecl {
-  def fromXML(node: scala.xml.Node, family: List[String], config: ParserConfig) = {
+  def fromXML(node: scala.xml.Node, family: List[String], config: ParserConfig): SimpTypListDecl = {
     val itemType = (node \ "@itemType").headOption match {
       case Some(x) => TypeSymbolParser.fromString(x.text, node.scope, config)
       case None    =>
@@ -194,7 +194,7 @@ object SimpTypListDecl {
 case class SimpTypUnionDecl() extends ContentTypeDecl
 
 object SimpTypUnionDecl {
-  def fromXML(node: scala.xml.Node, config: ParserConfig) = {
+  def fromXML(node: scala.xml.Node, config: ParserConfig): SimpTypUnionDecl = {
     SimpTypUnionDecl()
   }
 }
