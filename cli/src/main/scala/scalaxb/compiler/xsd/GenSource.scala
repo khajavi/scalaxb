@@ -43,9 +43,9 @@ class GenSource(val schema: SchemaDecl,
     val snippets = mutable.ListBuffer.empty[Snippet]
     snippets += Snippet(makeSchemaComment, Nil, Nil, Nil)
 
-    val dataTimeGenerator =
+    val dataTimeGenerators =
       """
-        |import org.scalacheck.Gen
+        |// Date and DateTime generators check for ZONE
         |import org.joda.time._
         |import com.fortysevendeg.scalacheck.datetime.instances.joda._
         |import com.fortysevendeg.scalacheck.datetime.GenDateTime.genDateTimeWithinRange
@@ -83,9 +83,35 @@ class GenSource(val schema: SchemaDecl,
         |val xmlDateGenPast: Gen[XMLGregorianCalendar] = xmlGen(
         |  genDateTimeWithinRange(DateTime.now, Period.years(-100))
         |)
-        |
+        |""".stripMargin
+    
+    val simpleTypeGenerators =
+      """
+        |/* Simple Type generators */
+        |def maxGen(size: Int): Gen[String] = {
+        |  for {
+        |    numElems <- Gen.choose(1, size)
+        |    elems <- Gen.listOfN(numElems, Gen.alphaNumChar)
+        |    str <- elems.mkString
+        |  } yield str
+        |}
+        |def optMaxGen(size: Int): Gen[Option[String]] = Gen.option(maxGen(size))
+        |""".stripMargin
+    
+    implicit class StringOps(val s: String) {
+      def blockIndent(i: Int): String = s.split("\n").map(indent(i) + _).mkString("\n") 
+    }
+       
+    val baseGenerators =
+      s"""
+        |object BaseGen {
+        |${simpleTypeGenerators.blockIndent(2)}
+        |${dataTimeGenerators.blockIndent(2)}
+        |}
         |""".stripMargin
 
+    snippets += Snippet(<source>{baseGenerators}</source>, Nil, Nil, Nil)
+    
     val gensource = schema.topTypes.map {
       case (typeName, typeDecl) => {
         val (forlines, yieldparams) = typeDecl match {
@@ -103,7 +129,8 @@ class GenSource(val schema: SchemaDecl,
                             case ElemRef(namespace, name, minOccurs, maxOccurs, nillable) => ("", "")
                             case ElemDecl(namespace, name, typeSymbol, defaultValue, fixedValue, minOccurs, maxOccurs, nillable, global, qualified, substitutionGroup, annotation) =>
                               typeSymbol.name match {
-                                case "javax.xml.datatype.XMLGregorianCalendar" => (s"${name} <- pastDateTimeGen", name)
+                                case "javax.xml.datatype.XMLGregorianCalendar" => (s"$name <- BaseGen.pastDateTimeGen", name)
+                                case "String" => (s"$name <- Gen.alphaStr", name)
                               }
                             case AnyDecl(minOccurs, maxOccurs, namespaceConstraint, processContents, uniqueId) => ("", "")
                           }.unzip
@@ -127,10 +154,8 @@ class GenSource(val schema: SchemaDecl,
         }
         s"""
            |object ${typeName} {
-           |  ${dataTimeGenerator}
-           |  
            |  def ${typeName.toLowerCase}Gen = for {
-           |    ${forlines}
+           |${forlines.split("\n").map(indent(2) + _).mkString("\n")}
            |  } yield ${typeName}(${yieldparams})
            |}
            |""".stripMargin

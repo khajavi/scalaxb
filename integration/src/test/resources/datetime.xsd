@@ -5,4 +5,10 @@
             <xs:element name = 'time' type = 'xs:date'/>
         </xs:sequence>
     </xs:complexType>
+    <xs:complexType name="Event">
+        <xs:sequence>
+            <xs:element name = 'date' type = 'xs:date'/>
+            <xs:element name = 'location' type = 'xs:string'/>
+        </xs:sequence>
+    </xs:complexType>
 </xs:schema>
