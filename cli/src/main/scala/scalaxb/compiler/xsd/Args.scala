@@ -126,7 +126,7 @@ trait Args extends Params {
       }
     } else buildArg(decl)
     
-  def toOptional(that: ElemDecl) = that.copy(minOccurs = 0, annotation = None)
+  def toOptional(that: ElemDecl): ElemDecl = that.copy(minOccurs = 0, annotation = None)
     
   // called by makeCaseClassWithType. By spec, <all> contains only elements.
   def buildArgForAll(particle: Particle, longAll: Boolean): String = {

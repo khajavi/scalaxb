@@ -519,7 +519,7 @@ case class ComplexTypeDecl(namespace: Option[String],
 }
 
 object ComplexTypeDecl {  
-  def fromXML(node: scala.xml.Node, name: String, family: List[String], config: ParserConfig) = {
+  def fromXML(node: scala.xml.Node, name: String, family: List[String], config: ParserConfig): ComplexTypeDecl = {
     val abstractValue = (node \ "@abstract").headOption match {
       case Some(x) => x.text.toBoolean
       case None    => false
