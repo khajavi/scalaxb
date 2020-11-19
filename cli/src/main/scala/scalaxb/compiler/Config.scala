@@ -77,6 +77,7 @@ case class Config(items: Map[String, ConfigEntry]) {
   def generateMutable: Boolean = values contains GenerateMutable
   def generateVisitor: Boolean = values contains GenerateVisitor
   def generateLens: Boolean = values contains GenerateLens
+  def generateScalacheckGenerator: Boolean = values contains GenerateScalacheckGenerator
   def capitalizeWords: Boolean = values contains CapitalizeWords
   def symbolEncodingStrategy = get[SymbolEncoding.Strategy] getOrElse defaultSymbolEncodingStrategy
   def enumNameMaxLength: Int = (get[EnumNameMaxLength] getOrElse defaultEnumNameMaxLength).value
@@ -155,6 +156,7 @@ object ConfigEntry {
   case object GenerateMutable extends ConfigEntry
   case object GenerateVisitor extends ConfigEntry
   case object GenerateLens extends ConfigEntry
+  case object GenerateScalacheckGenerator extends ConfigEntry
   case object CapitalizeWords extends ConfigEntry
   case class EnumNameMaxLength(value: Int) extends ConfigEntry
   case object UseLists extends ConfigEntry

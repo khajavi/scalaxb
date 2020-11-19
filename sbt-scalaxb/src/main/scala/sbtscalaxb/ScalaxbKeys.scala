@@ -30,6 +30,7 @@ trait ScalaxbKeys {
   lazy val scalaxbGenerateMutable  = settingKey[Boolean]("Generates mutable classes")
   lazy val scalaxbGenerateVisitor  = settingKey[Boolean]("Generates visitor")
   lazy val scalaxbGenerateLens     = settingKey[Boolean]("Generates visitor")
+  lazy val scalaxbGenerateScalacheckGenerator = settingKey[Boolean]("Generates scalacheck generator")
   lazy val scalaxbLaxAny           = settingKey[Boolean]("Relaxes namespace constraints of xs:any")
   lazy val scalaxbCombinedPackageNames = settingKey[Map[Option[String], Option[String]]]("")
   lazy val scalaxbGenerateDispatchClient = settingKey[Boolean]("Generate of Dispatch client")

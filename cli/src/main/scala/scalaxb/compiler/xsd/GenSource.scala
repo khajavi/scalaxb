@@ -105,12 +105,12 @@ class GenSource(val schema: SchemaDecl,
     val baseGenerators =
       s"""
         |object BaseGen {
+        |import org.scalacheck.Gen
         |${simpleTypeGenerators.blockIndent(2)}
         |${dataTimeGenerators.blockIndent(2)}
         |}
         |""".stripMargin
 
-    snippets += Snippet(<source>{baseGenerators}</source>, Nil, Nil, Nil)
     
     val gensource = schema.topTypes.map {
       case (typeName, typeDecl) => {
@@ -163,9 +163,8 @@ class GenSource(val schema: SchemaDecl,
     }.mkString("\n\n")
    
     
-    val generateScalacheckGenerators = true
-    
-    if (generateScalacheckGenerators) {
+    if (config.generateScalacheckGenerator) {
+      snippets += Snippet(<source>{baseGenerators}</source>, Nil, Nil, Nil)
       snippets += Snippet(<source>{gensource}</source>, Nil, Nil, Nil)
     }
 

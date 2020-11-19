@@ -132,6 +132,7 @@ object ScalaxbPlugin extends sbt.AutoPlugin {
         (if (scalaxbGenerateMutable.value) Vector(GenerateMutable) else Vector()) ++
         (if (scalaxbGenerateVisitor.value) Vector(GenerateVisitor) else Vector()) ++
         (if (scalaxbGenerateLens.value) Vector(GenerateLens) else Vector()) ++
+        (if (scalaxbGenerateScalacheckGenerator.value) Vector(GenerateScalacheckGenerator) else Vector()) ++
         (if (scalaxbAutoPackages.value) Vector(AutoPackages) else Vector()) ++
         (if (scalaxbCapitalizeWords.value) Vector(CapitalizeWords) else Vector()) ++
         Vector(SymbolEncoding.withName(scalaxbSymbolEncodingStrategy.value.toString)) ++

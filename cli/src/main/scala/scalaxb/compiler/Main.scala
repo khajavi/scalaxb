@@ -132,6 +132,8 @@ object Arguments {
         c.remove(VarArg) }
       opt[Unit]("generate-lens") text("Generate lenses") action { (_, c) =>
         c.update(GenerateLens) }
+      opt[Unit]("generate-scalacheck") text("Generate scalacheck generators") action {(_, c) =>
+        c.update(GenerateScalacheckGenerator)}
       opt[Unit]("ignore-unknown") text("ignores unknown Elements") action { (_, c) =>
         c.update(IgnoreUnknown) }
       opt[Unit]("capitalize-words")

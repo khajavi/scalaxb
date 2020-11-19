@@ -8,4 +8,4 @@ This list is incomplete and updated during the development.
 - [ ] Support Restrictions
   - [ ] enumerations
   - [ ] minOccurs, maxOccurs
-- [ ] Add sbt task configuration
+- [x] Add sbt task configuration
