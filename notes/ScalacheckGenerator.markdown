@@ -1,5 +1,6 @@
 # Summary
-Add a generator task to generate Scalachecks generators. 
+Add a generator task to generate Scalachecks generators. This generator creates generator in
+companion type of each ComplexType.
 
 # Issues
 This list is incomplete and updated during the development.

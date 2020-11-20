@@ -36,141 +36,33 @@ class GenSource(val schema: SchemaDecl,
   val elemList = schema.elemList
   val MIXED_PARAM = "mixed"
   val genLens = new GenMonocleLens(config)
+  val genScalacheckGenerator = new GenScalacheckGeneratorImpl(config)
 
+  implicit class StringOps(val s: String) {
+    def blockIndent(i: Int): String = s.split("\n").map(indent(i) + _).mkString("\n")
+  }
+  
+  case class CompanionObject(localName: String, block: Seq[String] = Nil) {
+    def makeCompanionObject: String =
+      s"""
+        |object ${localName} {
+        |${block.mkString("\n\n")}
+        |}
+        |""".stripMargin    
+  }
+  
   def run: Snippet = {
     logger.debug("run")
     
     val snippets = mutable.ListBuffer.empty[Snippet]
     snippets += Snippet(makeSchemaComment, Nil, Nil, Nil)
 
-    val dataTimeGenerators =
-      """
-        |// Date and DateTime generators check for ZONE
-        |import org.joda.time._
-        |import com.fortysevendeg.scalacheck.datetime.instances.joda._
-        |import com.fortysevendeg.scalacheck.datetime.GenDateTime.genDateTimeWithinRange
-        |import javax.xml.datatype.XMLGregorianCalendar
-        |import javax.xml.datatype.DatatypeFactory
-        |import javax.xml.datatype.DatatypeConstants
-        |
-        |def dateTimeGen(from: DateTime, range: Period): Gen[DateTime] =
-        |  genDateTimeWithinRange(from, range)
-        |def xmlDateTimeGen(dateTimeGen: Gen[DateTime]): Gen[XMLGregorianCalendar] =
-        |  for { date <- dateTimeGen } yield DatatypeFactory
-        |    .newInstance()
-        |    .newXMLGregorianCalendar(date.toGregorianCalendar)
-        |val pastDateTimeGen: Gen[XMLGregorianCalendar] = xmlGen(
-        |  genDateTimeWithinRange(DateTime.now, Period.years(-100))
-        |)
-        |val xmlDateTimeGenPast: Gen[XMLGregorianCalendar] = for {
-        |  date <- pastDateTimeGen
-        |} yield DatatypeFactory
-        |  .newInstance()
-        |  .newXMLGregorianCalendar(date.toGregorianCalendar())
-        |
-        |import com.fortysevendeg.scalacheck.datetime.joda.granularity.hours
-        |def dateGen(from: DateTime, range: Period): Gen[DateTime] =
-        |  genDateTimeWithinRange(from, range)
-        |def xmlGen(dateGen: Gen[DateTime]): Gen[XMLGregorianCalendar] =
-        |  for { date <- dateGen } yield DatatypeFactory
-        |    .newInstance()
-        |    .newXMLGregorianCalendarDate(
-        |      date.getYear(),
-        |      date.getMonthOfYear(),
-        |      date.getDayOfMonth(),
-        |      DatatypeConstants.FIELD_UNDEFINED
-        |    )
-        |val xmlDateGenPast: Gen[XMLGregorianCalendar] = xmlGen(
-        |  genDateTimeWithinRange(DateTime.now, Period.years(-100))
-        |)
-        |""".stripMargin
-    
-    val simpleTypeGenerators =
-      """
-        |/* Simple Type generators */
-        |def maxGen(size: Int): Gen[String] = {
-        |  for {
-        |    numElems <- Gen.choose(1, size)
-        |    elems <- Gen.listOfN(numElems, Gen.alphaNumChar)
-        |    str <- elems.mkString
-        |  } yield str
-        |}
-        |def optMaxGen(size: Int): Gen[Option[String]] = Gen.option(maxGen(size))
-        |""".stripMargin
-    
-    implicit class StringOps(val s: String) {
-      def blockIndent(i: Int): String = s.split("\n").map(indent(i) + _).mkString("\n") 
-    }
-       
-    val baseGenerators =
-      s"""
-        |object BaseGen {
-        |import org.scalacheck.Gen
-        |${simpleTypeGenerators.blockIndent(2)}
-        |${dataTimeGenerators.blockIndent(2)}
-        |}
-        |""".stripMargin
-
-    
-    val gensource = schema.topTypes.map {
-      case (typeName, typeDecl) => {
-        val (forlines, yieldparams) = typeDecl match {
-          case ComplexTypeDecl(_, name, _, _, _, content, _, _) =>
-            content match {
-              case ComplexContentDecl(content) =>
-                content match {
-                  case CompContExtensionDecl(base, compositor, attributes) => ("", "")
-                  case CompContRestrictionDecl(base, compositor, attributes) =>
-                    compositor match {
-                      case Some(value) => value match {
-                        case SequenceDecl(namespace, particles, minOccurs, maxOccurs, uniqueId) =>
-                          val (a, b) = particles.map {
-                            case particle: HasParticle => ("", "")
-                            case ElemRef(namespace, name, minOccurs, maxOccurs, nillable) => ("", "")
-                            case ElemDecl(namespace, name, typeSymbol, defaultValue, fixedValue, minOccurs, maxOccurs, nillable, global, qualified, substitutionGroup, annotation) =>
-                              typeSymbol.name match {
-                                case "javax.xml.datatype.XMLGregorianCalendar" => (s"$name <- BaseGen.pastDateTimeGen", name)
-                                case "String" => (s"$name <- Gen.alphaStr", name)
-                              }
-                            case AnyDecl(minOccurs, maxOccurs, namespaceConstraint, processContents, uniqueId) => ("", "")
-                          }.unzip
-                          (a.mkString("\n"), b.mkString(","))
-                        case ChoiceDecl(namespace, particles, minOccurs, maxOccurs, uniqueId) => ("", "")
-                        case AllDecl(namespace, particles, minOccurs, maxOccurs, uniqueId) => ("", "")
-                        case GroupRef(namespace, name, particles, minOccurs, maxOccurs) => ("", "")
-                        case GroupDecl(namespace, name, particles, minOccurs, maxOccurs, annotation) => ("", "")
-                      }
-                      case None => ("", "")
-                    }
-                  case SimpContExtensionDecl(base, attributes) => ("", "")
-                  case SimpContRestrictionDecl(base, simpleType, facets, attributes) => ("", "")
-                  case _ => ("", "")
-                }
-              case SimpleContentDecl(content) => ("", "")
-              case _ => ("", "")
-            }
-          case SimpleTypeDecl(namespace, name, family, content, annotation) => ("", "")
-          case _ => ("", "")
-        }
-        s"""
-           |object ${typeName} {
-           |  def ${typeName.toLowerCase}Gen = for {
-           |${forlines.split("\n").map(indent(2) + _).mkString("\n")}
-           |  } yield ${typeName}(${yieldparams})
-           |}
-           |""".stripMargin
-      }
-    }.mkString("\n\n")
-   
-    
-    if (config.generateScalacheckGenerator) {
-      snippets += Snippet(<source>{baseGenerators}</source>, Nil, Nil, Nil)
-      snippets += Snippet(<source>{gensource}</source>, Nil, Nil, Nil)
-    }
-
-    if (config.generateLens) {
+    if (config.generateLens)
       snippets += Snippet(<source>{genLens.buildImport}</source>, Nil, Nil, Nil)
-    }
+    
+    if (config.generateScalacheckGenerator)
+      snippets += Snippet(<source>{genScalacheckGenerator.buildImport}</source>, Nil, Nil, Nil)
+    
     schema.typeList map {
       case decl: ComplexTypeDecl if !context.duplicatedTypes.contains((schema, decl)) =>
         if (context.baseToSubs.contains(decl)) {
@@ -425,6 +317,12 @@ class GenSource(val schema: SchemaDecl,
       case true => paramList.map( param => genLens.buildDefLens(localName, param)).mkString(newline + indent(1))
       case false => ""
     }
+    
+    val defScalacheckGenerators = config.generateScalacheckGenerator match {
+      case true => genScalacheckGenerator.buildDefScalacheckGenerator(localName, paramList).blockIndent(1)
+      case false => ""
+    }
+    
     val defComposeLenses = config.generateLens match {
       case true => paramList.map( param => genLens.buildDefComposeLens(localName, param)).mkString(newline + indent(1))
       case false => ""
@@ -520,12 +418,13 @@ class GenSource(val schema: SchemaDecl,
     val groups = filterGroup(decl).distinct filter { g => primaryCompositor(g).particles.nonEmpty }
     val defaultFormatSuperNames: List[String] = "scalaxb.ElemNameParser[" + fqn + "]" :: groups.map(g =>
       buildFormatterName(g.namespace, groupTypeName(g))).distinct
-    
+
+    val scalacheckOutput = if (config.generateScalacheckGenerator) genScalacheckGenerator.buildObjectBlock(defScalacheckGenerators) else ""
+    val lensOutput = if (config.generateLens)  genLens.buildLensObjectBlock(localName, defLenses, defComposeLenses) else ""
     val caseClassCode = <source>{ buildComment(decl) }case class {localName}({paramsString}){extendString}{ if (accessors.isEmpty) ""
       else " {" + newline +
         indent(1) + accessors.mkString(newline + indent(1)) + newline +
-        "}" + newline}
-      {if(config.generateLens){genLens.buildObjectLens(localName, defLenses, defComposeLenses)}}
+        "}" + newline}{CompanionObject(localName, Seq(scalacheckOutput, lensOutput)).makeCompanionObject}
       </source>
 
     def defaultFormats = if (simpleFromXml) <source>  trait Default{formatterName} extends scalaxb.XMLFormat[{fqn}] with scalaxb.CanWriteChildNodes[{fqn}] {{
@@ -617,6 +516,9 @@ class GenSource(val schema: SchemaDecl,
       case true => paramList.map( param => genLens.buildDefLens(localName, param)).mkString(newline + indent(1))
       case false => ""
     }
+    
+    val defScalacheckGenerator = ??? //FIXME: implement for makeSequence
+    
     val defComposeLenses = config.generateLens match {
       case true => paramList.map( param => genLens.buildDefComposeLens(localName, param)).mkString(newline + indent(1))
       case false => ""
@@ -638,9 +540,15 @@ class GenSource(val schema: SchemaDecl,
     val superNames: List[String] = buildOptions(seq)
     val superString = if (superNames.isEmpty) ""
       else " extends " + superNames.mkString(" with ")
-    
+
+    val lensOutput                = if (config.generateLens) {
+      genLens.buildLensObjectBlock(localName, defLenses, defComposeLenses)
+    } else ""
+    val scalacheckGeneratorOutput = if (config.generateScalacheckGenerator) {
+      genScalacheckGenerator.buildObjectBlock(defScalacheckGenerator)
+    } else ""
     Snippet(<source>{ buildComment(seq) }case class {localName}({paramsString}){superString}
-      {if(config.generateLens){genLens.buildObjectLens(localName, defLenses, defComposeLenses)}}</source>,
+      {CompanionObject(localName, Seq(lensOutput, scalacheckGeneratorOutput))}</source>,
       <source/>,
       <source>  trait Default{formatterName} extends scalaxb.XMLFormat[{fqn}] {{
     def reads(seq: scala.xml.NodeSeq, stack: List[scalaxb.ElemName]): Either[String, {fqn}] = Left("don't call me.")

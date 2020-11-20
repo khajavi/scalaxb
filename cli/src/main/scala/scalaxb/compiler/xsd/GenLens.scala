@@ -6,7 +6,7 @@ trait GenLens { self: ContextProcessor =>
   def buildImport: String
   def buildDefLens(className: String, param: Params#Param): String
   def buildDefComposeLens(className: String, param: Params#Param): String
-  def buildObjectLens(localName: String, defLenses: String, defComposeLenses: String): String
+  def buildLensObjectBlock(localName: String, defLenses: String, defComposeLenses: String): String
 }
 
 /**
@@ -49,11 +49,9 @@ class GenMonocleLens(var config: Config) extends GenLens with ContextProcessor {
     s"def ${param.toParamName}: monocle.Lens[A, ${param.typeName}] = l composeLens ${className}.${param.toParamName}"
   }
 
-  override def buildObjectLens(localName: String, defLenses: String, defComposeLenses: String): String = {
-    newline + "object " + {localName} + " {" + newline +
+  override def buildLensObjectBlock(localName: String, defLenses: String, defComposeLenses: String): String = {
       indent(1) + defLenses + newline + newline +
       indent(1) + "implicit class " + {localName} + "W[A](l: monocle.Lens[A, " + {localName} + "]) {" + newline +
-      indent(2) + defComposeLenses + newline + indent(1) + "}" + newline + newline +
-      newline + "}" + newline
+      indent(2) + defComposeLenses + newline + indent(1) + "}" + newline + newline
   }
 }

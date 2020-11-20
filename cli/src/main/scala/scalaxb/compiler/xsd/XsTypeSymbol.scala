@@ -24,7 +24,7 @@ package scalaxb.compiler.xsd
 
 import javax.xml.namespace.QName
 
-trait XsTypeSymbol extends scala.xml.TypeSymbol {
+sealed trait XsTypeSymbol extends scala.xml.TypeSymbol {
   val name: String
   
   override def toString(): String = name 
@@ -101,7 +101,7 @@ case class XsXMLFormat(member: Decl) extends XsTypeSymbol {
   }) + ")"
 }
 
-class BuiltInSimpleTypeSymbol(val name: String) extends XsTypeSymbol
+sealed class BuiltInSimpleTypeSymbol(val name: String) extends XsTypeSymbol
 
 case class AttributeGroupSymbol(namespace: Option[String],
   name: String) extends XsTypeSymbol
