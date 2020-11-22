@@ -80,6 +80,8 @@ class Driver extends Module { driver =>
   }
 
   def generateRuntimeFiles[To](cntxt: Context, config: Config)(implicit evTo: CanBeWriter[To]): List[To] =
+    (if (config.generateScalacheckGenerator)
+      List(generateFromResource[To](Some("generated"), "generators.scala", "/generators.scala.template")) else Nil) ++
     List(
       generateFromResource[To](Some("scalaxb"), "scalaxb.scala", "/scalaxb.scala.template")
     ) ++

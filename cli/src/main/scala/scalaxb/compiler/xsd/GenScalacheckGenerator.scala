@@ -17,58 +17,7 @@ trait GenScalacheckGenerator { self: ContextProcessor =>
 class GenScalacheckGeneratorImpl(var config: Config)
     extends GenScalacheckGenerator
     with ContextProcessor {
-  override def buildImport: String = //FIXME: move all SimpleTypeGenerator to separate file
-    """
-      |object SimpleTypeGenerators {
-      |  import org.scalacheck.Gen
-      |
-      |  import org.scalacheck.Arbitrary
-      |  val stringGen = Arbitrary(
-      |    Gen.listOf[Char](Arbitrary.arbChar.arbitrary)
-      |  ).arbitrary.map(_.mkString)
-      |
-      |// Date and DateTime generators check for ZONE
-      |  import org.joda.time._
-      |  import com.fortysevendeg.scalacheck.datetime.instances.joda._
-      |  import com.fortysevendeg.scalacheck.datetime.GenDateTime.genDateTimeWithinRange
-      |  import javax.xml.datatype.XMLGregorianCalendar
-      |  import javax.xml.datatype.DatatypeFactory
-      |  import javax.xml.datatype.DatatypeConstants
-      |  def dateTimeGen(from: DateTime, range: Period): Gen[DateTime] =
-      |    genDateTimeWithinRange(from, range)
-      |  def xmlDateTimeGen(dateTimeGen: Gen[DateTime]): Gen[XMLGregorianCalendar] =
-      |    for { date <- dateTimeGen } yield DatatypeFactory
-      |      .newInstance()
-      |      .newXMLGregorianCalendar(date.toGregorianCalendar)
-      |  val pastDateTimeGen: Gen[XMLGregorianCalendar] = xmlGen(
-      |    genDateTimeWithinRange(DateTime.now, Period.years(-100))
-      |  )
-      |  val xmlDateTimeGenPast: Gen[XMLGregorianCalendar] = for {
-      |    date <- pastDateTimeGen
-      |  } yield DatatypeFactory
-      |    .newInstance()
-      |    .newXMLGregorianCalendar(date.toGregorianCalendar())
-      |
-      |  import com.fortysevendeg.scalacheck.datetime.joda.granularity.hours
-      |  def dateGen(from: DateTime, range: Period): Gen[DateTime] =
-      |    genDateTimeWithinRange(from, range)
-      |  def xmlGen(dateGen: Gen[DateTime]): Gen[XMLGregorianCalendar] =
-      |    for { date <- dateGen } yield DatatypeFactory
-      |      .newInstance()
-      |      .newXMLGregorianCalendarDate(
-      |        date.getYear(),
-      |        date.getMonthOfYear(),
-      |        date.getDayOfMonth(),
-      |        DatatypeConstants.FIELD_UNDEFINED
-      |      )
-      |  val xmlDateGenPast: Gen[XMLGregorianCalendar] = xmlGen(
-      |    genDateTimeWithinRange(DateTime.now, Period.years(-100))
-      |  )
-      |  val dateGen: Gen[XMLGregorianCalendar] = pastDateTimeGen
-      |
-      |}
-      |import SimpleTypeGenerators.{dateGen, stringGen}
-      |""".stripMargin
+  override def buildImport: String = "import generators._"
 
   def buildDefScalacheckGenerator(
       className: String,
@@ -86,18 +35,19 @@ class GenScalacheckGeneratorImpl(var config: Config)
       t match {
         case XsDuration => "duration"
         case XsDateTime => "dateTime"
-        case XsTime     => "time"
-        case XsDate     => "date"
-        case XsBoolean  => "boolean"
-        case XsFloat    => "float"
-        case XsDouble   => "double"
-        case XsString   => "string"
-        case XsInteger  => "bigInt"
-        case XsLong     => "long"
-        case XsInt      => "int"
-        case XsByte     => "byte"
-        case _ =>
-          ??? //FIXME: There are lots of other simple types. Right now we support the most frequent ones.
+        case XsTime => "time"
+        case XsDate => "date"
+        case XsBoolean => "boolean"
+        case XsFloat => "float"
+        case XsDouble => "double"
+        case XsString => "string"
+        case XsInteger => "bigInt"
+        case XsLong => "long"
+        case XsInt => "int"
+        case XsByte => "byte"
+        case XsShort => "short"
+        case XsDecimal => "decimal"
+        case _ => ??? //FIXME: There are lots of other simple types. Right now we support the most frequent ones.
       }
 
     def forlines(params: List[Params#Param]): String =
