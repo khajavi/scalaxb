@@ -1,4 +1,4 @@
-package generated
+package scalacheck
 
 import javax.xml.datatype
 import org.scalacheck.Gen
@@ -50,5 +50,5 @@ object generators {
   val dateGen: Gen[XMLGregorianCalendar] = pastDateGen //FIXME
   val timeGen: Gen[XMLGregorianCalendar] = pastDateGen //FIXME
   val dateTimeGen: Gen[XMLGregorianCalendar] = pastDateGen //FIXME
-  val durationGen: Gen[datatype.Duration] = ??? //FIXME
+//  val durationGen: Gen[datatype.Duration] = ??? //FIXME
 }

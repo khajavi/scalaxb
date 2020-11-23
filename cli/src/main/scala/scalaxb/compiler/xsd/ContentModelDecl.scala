@@ -207,6 +207,7 @@ object Facetable {
   def fromParent(node: scala.xml.Node, base: XsTypeSymbol, config: ParserConfig): List[Facetable[_]] = 
     node.child.toList collect {
       case x@(<enumeration>{ _* }</enumeration>) => EnumerationDecl.fromXML(x, base, config)
+      //TODO: Add other cases of constraining facets.
     }
 }
 

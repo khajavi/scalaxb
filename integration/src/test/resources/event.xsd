@@ -1,0 +1,14 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:complexType name="Event">
+        <xs:sequence>
+            <xs:element name='date' type='xs:date'/>
+            <xs:element name='location' type='Location'/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="Location">
+        <xs:sequence>
+            <xs:element name='country' type='xs:string'/>
+            <xs:element name='city' type='xs:string'/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

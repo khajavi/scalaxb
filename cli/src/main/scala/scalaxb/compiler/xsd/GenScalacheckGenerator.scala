@@ -17,7 +17,7 @@ trait GenScalacheckGenerator { self: ContextProcessor =>
 class GenScalacheckGeneratorImpl(var config: Config)
     extends GenScalacheckGenerator
     with ContextProcessor {
-  override def buildImport: String = "import generators._"
+  override def buildImport: String = "import scalacheck.generators._"
 
   def buildDefScalacheckGenerator(
       className: String,
@@ -25,11 +25,11 @@ class GenScalacheckGeneratorImpl(var config: Config)
   ): String = {
     def lowerCaseFirstChar(s: String): String = {
       val chars = s.toCharArray
-      if (chars.isEmpty) "" else (chars(0).toLower + s.substring(1))
+      if (chars.isEmpty) "" else chars(0).toLower + s.substring(1)
     }
 
     def forline(paramName: String, paramType: String): String =
-      s"${lowerCaseFirstChar(paramName)} <- ${lowerCaseFirstChar(paramType)}Gen"
+      s"${lowerCaseFirstChar(paramName)} <- ${paramType}Gen"
 
     def makeGeneratorName(t: BuiltInSimpleTypeSymbol): String =
       t match {
@@ -55,6 +55,8 @@ class GenScalacheckGeneratorImpl(var config: Config)
         x.typeSymbol match {
           case symbol: BuiltInSimpleTypeSymbol =>
             (lowerCaseFirstChar(x.name), makeGeneratorName(symbol))
+          case ref: ReferenceTypeSymbol =>
+            (lowerCaseFirstChar(x.name), ref.name + "." + lowerCaseFirstChar(ref.name))
           case _ =>
             throw new Exception(
               "Other types not supported yet"
