@@ -21,7 +21,10 @@ class GeneratorEventTest extends TestBase {
         """import event._""",
         """import org.scalacheck.Gen""",
         """import org.scalacheck.rng.Seed""",
-        """Event.eventGen(Gen.Parameters.default, Seed.random()).get.location.city.nonEmpty"""
+        """val b1 = Event.eventGen(Gen.Parameters.default, Seed.random()).get.multipleLocation.isInstanceOf[List[_]]""",
+        """val b2 = Event.eventGen(Gen.Parameters.default, Seed.random()).get.singleLocation.isInstanceOf[Location]""",
+        """val b3 = Event.eventGen(Gen.Parameters.default, Seed.random()).get.optionalLocation.isInstanceOf[Option[_]]""",
+        """b1 && b2 && b3"""
       ),
       generated
     ) must evaluateTo(true, outdir = "./tmp", usecurrentcp = true)

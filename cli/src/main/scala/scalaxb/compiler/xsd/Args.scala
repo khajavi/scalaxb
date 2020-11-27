@@ -76,10 +76,10 @@ trait Args extends Params {
       else selector + ".headOption map { x => scalaxb.DataRecord(x, " +
         buildFromXML(typeName, "x", stackItem, formatter) + ") }"
     } else (cardinality, nillable, (!config.varArg)) match {
-      case (Multiple, true, true)  => selector + " map { _.nilOption map { " + fromU + " }}"
-      case (Multiple, false, true) => selector + " map { " + fromU + " }"
-      case (Multiple, true, false)  => selector + ".toSeq map { _.nilOption map { " + fromU + " }}"
-      case (Multiple, false, false) => selector + ".toSeq map { " + fromU + " }"
+      case (Multiple(_, _), true, true)  => selector + " map { _.nilOption map { " + fromU + " }}"
+      case (Multiple(_, _), false, true) => selector + " map { " + fromU + " }"
+      case (Multiple(_, _), true, false)  => selector + ".toSeq map { _.nilOption map { " + fromU + " }}"
+      case (Multiple(_, _), false, false) => selector + ".toSeq map { " + fromU + " }"
       case (Optional, true, _)  => selector + ".headOption map { _.nilOption map { " + fromU + " }}"
       case (Optional, false, _) => selector + ".headOption map { " + fromU + " }"
       case (Single, _, _) =>
@@ -156,7 +156,7 @@ trait Args extends Params {
       case ReferenceTypeSymbol(decl: ComplexTypeDecl) =>
         if (compositorWrapper.contains(decl))
           (toCardinality(elem.minOccurs, elem.maxOccurs), elem.nillable getOrElse {false}) match {
-            case (Multiple, _) if config.varArg => selector + ".toSeq"
+            case (Multiple(_, _), _) if config.varArg => selector + ".toSeq"
             case (Optional, true) => selector + " getOrElse { None }"
             case _ => selector
           }
@@ -305,7 +305,7 @@ trait Args extends Params {
     }
     
     val retval = cardinality match {
-      case Multiple =>
+      case Multiple(_, _) =>
         if (isCompositor(particle)) selector + ".flatten"
         else selector
       case Optional =>

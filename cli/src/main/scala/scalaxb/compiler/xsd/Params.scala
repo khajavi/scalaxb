@@ -29,7 +29,7 @@ import scalaxb.compiler.Module.camelCase
 sealed abstract class Cardinality
 case object Optional extends Cardinality { override def toString: String = "Optional" }
 case object Single extends Cardinality { override def toString: String = "Single" }
-case object Multiple extends Cardinality { override def toString: String = "Multiple" }
+case class Multiple(minOccurs: Int, maxOccurs:Int) extends Cardinality { override def toString: String = "Multiple" }
 
 trait Params extends Lookup {
   private val logger = Log.forName("xsd.Params")
@@ -41,7 +41,7 @@ trait Params extends Lookup {
   }
 
   def toCardinality(minOccurs: Int, maxOccurs: Int): Cardinality =
-    if (maxOccurs > 1) Multiple
+    if (maxOccurs > 1) Multiple(minOccurs, maxOccurs)
     else if (minOccurs == 0) Optional
     else Single
     
@@ -56,7 +56,7 @@ trait Params extends Lookup {
   }
   
   case class Param(namespace: Option[String],
-    name: String,
+    name: String, 
     typeSymbol: XsTypeSymbol,
     cardinality: Cardinality,
     nillable: Boolean,
@@ -73,7 +73,7 @@ trait Params extends Lookup {
     def typeName: String = cardinality match {
       case Single   => singleTypeName
       case Optional => "Option[" + singleTypeName + "]"
-      case Multiple => if (config.useLists) "List[" + singleTypeName + "]" else "Seq[" + singleTypeName + "]"
+      case Multiple(_, _) => if (config.useLists) "List[" + singleTypeName + "]" else "Seq[" + singleTypeName + "]"
     }      
 
     def toParamName: String = makeParamName(name, typeSymbol match {
@@ -90,7 +90,7 @@ trait Params extends Lookup {
       toTraitScalaCode(doMutable) + (cardinality match {
         case Single if typeSymbol == XsLongAttribute || typeSymbol == XsAnyAttribute => " = Map.empty"
         case Optional => " = None"
-        case Multiple => " = Nil"
+        case Multiple(_, _) => " = Nil"
         case Single if nillable => " = None"
         case _ => ""
       })

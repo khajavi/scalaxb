@@ -305,7 +305,7 @@ class GenSource(val schema: SchemaDecl,
     val extendString = if (superNames.isEmpty) ""
       else " extends " + superNames.mkString(" with ")
     
-    val hasSequenceParam = (paramList.size == 1) && (paramList.head.cardinality == Multiple) &&
+    val hasSequenceParam = (paramList.size == 1) && (paramList.head.cardinality.isInstanceOf[Multiple]) &&
       (!paramList.head.attribute) && (!effectiveMixed) && (!longAll) && (config.varArg)
     
     def paramsString = if (hasSequenceParam) makeParamName(paramList.head.name, false) + ": " +
@@ -525,7 +525,7 @@ class GenSource(val schema: SchemaDecl,
     }
 
     val hasSequenceParam = (paramList.size == 1) &&
-      (paramList.head.cardinality == Multiple) &&
+      (paramList.head.cardinality.isInstanceOf[Multiple]) &&
       (!paramList.head.attribute)
     val paramsString = if (hasSequenceParam)
         makeParamName(paramList.head.name, attribute = false) + ": " + paramList.head.singleTypeName + "*"

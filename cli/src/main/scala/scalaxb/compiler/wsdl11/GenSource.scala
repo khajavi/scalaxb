@@ -662,7 +662,7 @@ trait {interfaceTypeName} {{
       cardinality match {
         case Single   => singleTypeName
         case Optional => "Option[" + singleTypeName + "]"
-        case Multiple => if (config.useLists) "List[" + singleTypeName + "]" else "Seq[" + singleTypeName + "]"
+        case Multiple(_, _) => if (config.useLists) "List[" + singleTypeName + "]" else "Seq[" + singleTypeName + "]"
       }
     def baseTypeName: String = xsdgenerator.buildTypeName(typeSymbol)
     def toParamName = escapeKeyWord(paramName)
@@ -701,8 +701,8 @@ trait {interfaceTypeName} {{
 
         list map { x =>
           val param = xsdgenerator.buildParam(x) map {camelCase}
-          val seqParam = (list.size == 1) && (param.cardinality == Multiple) &
-            (attributes.size == 0) && (!decl.mixed) && (!longAll)
+          val seqParam = (list.size == 1) && (param.cardinality.isInstanceOf[Multiple]) &
+            attributes.isEmpty && (!decl.mixed) && (!longAll)
           ParamCache(param.toParamName, param.typeSymbol, param.cardinality, param.nillable, seqParam)
         }
       case AnyType(symbol) =>

@@ -123,7 +123,7 @@ trait Parsers extends Args with Params {
       val paramList = if (mixed) Nil
         else particles map { buildParam }
       val hasSequenceParam = (paramList.size == 1) &&
-        (paramList.head.cardinality == Multiple) &&
+        (paramList.head.cardinality.isInstanceOf[Multiple]) &&
         (!mixed)
 
       def argsString = if (hasSequenceParam) argList.head + ": _*"
@@ -242,8 +242,8 @@ trait Parsers extends Args with Params {
       val nillableRecord = "scalaxb.DataRecord(x.namespace, Some(x.name), x.nilOption map {" + buildArg("_", typeSymbol, Some("node")) + "})"
       
       (toCardinality(occurrence), occurrence.nillable) match {
-        case (Multiple, true)   => "(_.toSeq map { x => " + nillableRecord + " })"        
-        case (Multiple, false)  => "(_.toSeq map { x => " + record + " })" 
+        case (Multiple(_, _), true)   => "(_.toSeq map { x => " + nillableRecord + " })"        
+        case (Multiple(_, _), false)  => "(_.toSeq map { x => " + record + " })" 
         case (Optional, true)   => "(_ map { x => " + nillableRecord + " })"
         case (Optional, false)  => "(_ map { x => " + record + " })"      
         case (Single, true)     => "(x => " + nillableRecord + ")"
