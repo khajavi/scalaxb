@@ -4,8 +4,8 @@
             <xs:element name='singleDate' type='xs:date'/>
             <xs:element minOccurs="0" maxOccurs="1" name='optionDate' type='xs:date'/>
             <xs:element minOccurs="0" maxOccurs="3" name='multipleList' type='xs:date'/>
-            <xs:element minOccurs="0" maxOccurs="3"  name='multipleLocation' type='Location'/>
-            <xs:element minOccurs="0" maxOccurs="1"  name='optionalLocation' type='Location'/>
+            <xs:element minOccurs="0" maxOccurs="3" name='multipleLocation' type='Location'/>
+            <xs:element minOccurs="0" maxOccurs="1" name='optionalLocation' type='Location'/>
             <xs:element name='singleLocation' type='Location'/>
         </xs:sequence>
     </xs:complexType>
@@ -15,4 +15,15 @@
             <xs:element name='city' type='xs:string'/>
         </xs:sequence>
     </xs:complexType>
+    <xs:simpleType name="daysOfWeek">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Monday"/>
+            <xs:enumeration value="Tuesday"/>
+            <xs:enumeration value="Wednesday"/>
+            <xs:enumeration value="Thursday"/>
+            <xs:enumeration value="Friday"/>
+            <xs:enumeration value="Saturday"/>
+            <xs:enumeration value="Sunday"/>
+        </xs:restriction>
+    </xs:simpleType>
 </xs:schema>

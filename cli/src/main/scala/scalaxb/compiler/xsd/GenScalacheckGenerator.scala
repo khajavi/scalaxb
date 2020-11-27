@@ -6,6 +6,7 @@ import scala.collection.immutable.List
 
 trait GenScalacheckGenerator { self: ContextProcessor =>
   def buildImport: String
+  def buildEnumGen(localName: String): String
   def buildDefScalacheckGenerator(
       className: String,
       param: List[Params#Param]
@@ -22,15 +23,13 @@ class GenScalacheckGeneratorImpl(var config: Config)
     |import scalacheck.generators._
     |import org.scalacheck.Gen
     |""".stripMargin
+    
+  def buildEnumGen(localName: String): String = s"val ${lowerCaseFirstChar(localName)}Gen = Gen.oneOf(values)"
 
   def buildDefScalacheckGenerator(
       localName: String,
       param: List[Params#Param]
   ): String = {
-    def lowerCaseFirstChar(s: String): String = {
-      val chars = s.toCharArray
-      if (chars.isEmpty) "" else chars(0).toLower + s.substring(1)
-    }
 
     def forline(paramName: String, paramType: String): String =
       s"${lowerCaseFirstChar(paramName)} <- ${paramType}"
@@ -61,6 +60,10 @@ class GenScalacheckGeneratorImpl(var config: Config)
        |""".stripMargin
   }
 
+  private def lowerCaseFirstChar(s: String): String = {
+    val chars = s.toCharArray
+    if (chars.isEmpty) "" else chars(0).toLower + s.substring(1)
+  }
 }
 
 trait ScalacheckGenerator[T] {
