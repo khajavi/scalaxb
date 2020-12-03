@@ -334,10 +334,10 @@ trait Parsers extends Args with Params {
   
   def buildImplicitParams(dependents: List[Decl]) =
     immutable.ListMap[Decl, Param]((for (i <- 0 to dependents.size - 1)
-      yield (dependents(i), 
-        Param(None, "ev" + i, XsXMLFormat(dependents(i)), Single, false, false, false, false) )): _*)
+      yield (dependents(i),
+        Param(None, "ev" + i, XsXMLFormat(dependents(i)), Single, None, false, false, false, false))): _*)
   
   /// for recursive complex types, which would call this#toXML or this#fromXML.
   def buildFakeImplicitParam(decl: ComplexTypeDecl): Param =
-    Param(None, "this", XsXMLFormat(decl), Single, false, false, false, false)
+    Param(None, "this", XsXMLFormat(decl), Single, None, false, false, false, false)
 }

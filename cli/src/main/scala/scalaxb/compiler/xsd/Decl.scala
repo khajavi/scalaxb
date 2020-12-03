@@ -408,7 +408,8 @@ case class ElemDecl(namespace: Option[String],
   global: Boolean = false,
   qualified: Boolean = false,
   substitutionGroup: Option[(Option[String], String)] = None,
-  annotation: Option[AnnotationDecl] = None) extends Decl with Particle with Annotatable
+  annotation: Option[AnnotationDecl] = None,
+  choices: Option[ChoiceDecl] = None) extends Decl with Particle with Annotatable
 
 object ElemDecl {
   def fromXML(node: scala.xml.Node, family: List[String], global: Boolean, config: ParserConfig) = {

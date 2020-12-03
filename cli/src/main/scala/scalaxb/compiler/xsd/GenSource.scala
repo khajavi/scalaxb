@@ -1051,7 +1051,7 @@ object {localName} {{
   }
   
   def generateAccessors(params: List[Param], splits: List[SequenceDecl]): List[(String, Option[String])] = params flatMap {
-    case param@Param(_, _, ReferenceTypeSymbol(decl@ComplexTypeDecl(_, _, _, _, _, _, _, _)), _, _, _, _, _) if
+    case param@Param(_, _, ReferenceTypeSymbol(decl@ComplexTypeDecl(_, _, _, _, _, _, _, _)), _, _, _, _, _, _) if
         compositorWrapper.contains(decl) &&
         splits.contains(compositorWrapper(decl)) =>  
       val wrapperName = makeParamName(param.name, false)

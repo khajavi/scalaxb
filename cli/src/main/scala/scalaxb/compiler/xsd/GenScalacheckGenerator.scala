@@ -8,11 +8,17 @@ trait GenScalacheckGenerator { self: ContextProcessor =>
   def buildImport: String
   def buildEnumGen(localName: String): String
   def buildDefScalacheckGenerator(
+      localName: String,
+      param: List[Params#Param]
+  ): String
+
+  def buildObjectBlock(defScalacheckGenerator: String): String =
+    defScalacheckGenerator
+
+  def buildDefChoiceGenerator(
       className: String,
       param: List[Params#Param]
   ): String
-  def buildObjectBlock(defScalacheckGenerator: String): String =
-    defScalacheckGenerator
 }
 
 class GenScalacheckGeneratorImpl(var config: Config)
@@ -23,16 +29,14 @@ class GenScalacheckGeneratorImpl(var config: Config)
     |import scalacheck.generators._
     |import org.scalacheck.Gen
     |""".stripMargin
-    
-  def buildEnumGen(localName: String): String = s"val ${lowerCaseFirstChar(localName)}Gen = Gen.oneOf(values)"
+
+  def buildEnumGen(localName: String): String =
+    s"val ${lowerCaseFirstChar(localName)}Gen = Gen.oneOf(values)"
 
   def buildDefScalacheckGenerator(
       localName: String,
       param: List[Params#Param]
   ): String = {
-
-    def forline(paramName: String, paramType: String): String =
-      s"${lowerCaseFirstChar(paramName)} <- ${paramType}"
 
     def forlines(
         params: List[Params#Param]
@@ -40,10 +44,10 @@ class GenScalacheckGeneratorImpl(var config: Config)
       params.map(x =>
         (
           lowerCaseFirstChar(x.name),
-          Gen(x.typeSymbol, x, config.useLists)
+          Gen(x.typeSymbol, x.cardinality, config.useLists, x.choices)
         )
       ) map {
-        case (genName, genType) => forline(genName, genType)
+        case (genName, genType) => ScalacheckGenerator.forline(genName, genType)
       } mkString "\n"
 
     implicit class StringOps(val s: String) {
@@ -64,28 +68,60 @@ class GenScalacheckGeneratorImpl(var config: Config)
     val chars = s.toCharArray
     if (chars.isEmpty) "" else chars(0).toLower + s.substring(1)
   }
+
+  override def buildDefChoiceGenerator(
+      className: String,
+      param: List[Params#Param]
+  ): String = {
+    s"def ${lowerCaseFirstChar(className)} = "
+  }
 }
 
 trait ScalacheckGenerator[T] {
-  def apply(xsTypeSymbol: T, param: Params#Param, useList: Boolean): String
+  def apply(
+      xsTypeSymbol: T,
+      cardinality: Cardinality,
+      useList: Boolean,
+      choices: Option[ChoiceDecl]
+  ): String
 }
 
 object ScalacheckGenerator {
+  def forline(paramName: String, paramType: String): String =
+    s"${lowerCaseFirstChar(paramName)} <- ${paramType}"
+
   def lowerCaseFirstChar(s: String): String = {
     val chars = s.toCharArray
     if (chars.isEmpty) "" else chars(0).toLower + s.substring(1)
   }
+  def indent(indent: Int) = "  " * indent
+
+  implicit class StringOps(val s: String) {
+    def blockIndent(i: Int): String =
+      s split "\n" map (indent(
+        i
+      ) + _) mkString "\n" //FIXME: use newline to support all platforms
+  }
+
+  def toCardinality(minOccurs: Int, maxOccurs: Int): Cardinality =
+    if (maxOccurs > 1) Multiple(minOccurs, maxOccurs)
+    else if (minOccurs == 0) Optional
+    else Single
+
   implicit object XsTypeSymbolGen extends ScalacheckGenerator[XsTypeSymbol] {
     override def apply(
         xsTypeSymbol: XsTypeSymbol,
-        param: Params#Param,
-        useList: Boolean
+        cardinality: Cardinality,
+        useList: Boolean,
+        choice: Option[ChoiceDecl]
     ): String =
       xsTypeSymbol match {
         case symbol: ReferenceTypeSymbol =>
-          RefGenMaker(symbol, param, useList)
+          RefGenMaker(symbol, cardinality, useList, choice)
         case symbol: BuiltInSimpleTypeSymbol =>
-          SimpleGenMaker(symbol, param, useList)
+          SimpleGenMaker(symbol, cardinality, useList, choice)
+        case symbol: XsDataRecord =>
+          XsDataRecordGenerator(symbol, cardinality, useList, choice)
         case _ => throw new Exception
       }
   }
@@ -111,8 +147,9 @@ object ScalacheckGenerator {
   implicit object RefGenMaker extends ScalacheckGenerator[ReferenceTypeSymbol] {
     override def apply(
         symbol: ReferenceTypeSymbol,
-        param: Params#Param,
-        useLists: Boolean
+        cardinality: Cardinality,
+        useLists: Boolean,
+        choice: Option[ChoiceDecl]
     ): String = {
       def makeGenRef(
           typeName: String,
@@ -122,16 +159,58 @@ object ScalacheckGenerator {
         val innerGen = s"$typeName.${lowerCaseFirstChar(typeName)}Gen"
         makeTypeCardinality(cardinality, innerGen, useLists)
       }
-      makeGenRef(symbol.name, param.cardinality, useLists)
+      makeGenRef(symbol.name, cardinality, useLists)
     }
+  }
+
+  implicit object XsDataRecordGenerator
+      extends ScalacheckGenerator[XsDataRecord] {
+    override def apply(
+        xsTypeSymbol: XsDataRecord,
+        cardinality: Cardinality,
+        useList: Boolean,
+        choices: Option[ChoiceDecl]
+    ): String =
+      xsTypeSymbol.member match {
+        case ReferenceTypeSymbol(_) =>
+          val nametypes = choices.get.particles.map {
+            case _: HasParticle | _: AnyDecl | _: ElemRef =>
+              ??? //TODO: implement other nessessary cases.
+            case e: ElemDecl =>
+              (
+                e.name,
+                XsTypeSymbolGen(
+                  e.typeSymbol,
+                  toCardinality(e.minOccurs, e.maxOccurs),
+                  false,
+                  None
+                )
+              )
+          }
+
+          def datarecordGen(key: String) =
+            s"""scalaxb.DataRecord(None, Some("$key"), $key)"""
+
+          s"""for {
+             |${nametypes.map(x => forline(x._1, x._2)).mkString("\n")}
+             |dataRecord <- Gen.oneOf(
+             |${nametypes
+            .map(x => datarecordGen(x._1))
+            .mkString(",\n")
+            .blockIndent(2)}
+             |  )
+             |} yield (dataRecord)
+             |""".stripMargin
+      }
   }
 
   implicit object SimpleGenMaker
       extends ScalacheckGenerator[BuiltInSimpleTypeSymbol] {
     override def apply(
         symbol: BuiltInSimpleTypeSymbol,
-        param: Params#Param,
-        useList: Boolean
+        cardinality: Cardinality,
+        useList: Boolean,
+        choice: Option[ChoiceDecl]
     ): String = {
       def makeGeneratorName(t: BuiltInSimpleTypeSymbol): String =
         t match {
@@ -152,8 +231,8 @@ object ScalacheckGenerator {
           case _ =>
             ??? //FIXME: There are lots of other simple types. Right now we support the most frequent ones.
         }
-     val innerGen =  makeGeneratorName(symbol) + "Gen"
-      makeTypeCardinality(param.cardinality, innerGen, useList)
+      val innerGen = makeGeneratorName(symbol) + "Gen"
+      makeTypeCardinality(cardinality, innerGen, useList)
     }
   }
 
