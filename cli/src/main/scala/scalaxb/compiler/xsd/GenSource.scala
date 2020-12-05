@@ -517,7 +517,7 @@ class GenSource(val schema: SchemaDecl,
       case false => ""
     }
     
-    val defScalacheckGenerator = ??? //FIXME: implement for makeSequence
+//    val defScalacheckGenerator = ??? //FIXME: implement for makeSequence
     
     val defComposeLenses = config.generateLens match {
       case true => paramList.map( param => genLens.buildDefComposeLens(localName, param)).mkString(newline + indent(1))
@@ -545,10 +545,12 @@ class GenSource(val schema: SchemaDecl,
       genLens.buildLensObjectBlock(localName, defLenses, defComposeLenses)
     } else ""
     val scalacheckGeneratorOutput = if (config.generateScalacheckGenerator) {
-      genScalacheckGenerator.buildObjectBlock(defScalacheckGenerator)
+//      genScalacheckGenerator.buildObjectBlock(defScalacheckGenerator) 
+      ""
     } else ""
+    
     Snippet(<source>{ buildComment(seq) }case class {localName}({paramsString}){superString}
-      {CompanionObject(localName, Seq(lensOutput, scalacheckGeneratorOutput))}</source>,
+      {CompanionObject(localName, Seq(lensOutput, scalacheckGeneratorOutput)).makeCompanionObject}</source>,
       <source/>,
       <source>  trait Default{formatterName} extends scalaxb.XMLFormat[{fqn}] {{
     def reads(seq: scala.xml.NodeSeq, stack: List[scalaxb.ElemName]): Either[String, {fqn}] = Left("don't call me.")
