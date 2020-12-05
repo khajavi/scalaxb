@@ -1,9 +1,10 @@
 import java.io.File
 
-import scalaxb.compiler.Config
-import scalaxb.compiler.ConfigEntry.{GenerateScalacheckGenerator, Outdir, PackageNames}
+import scalaxb.compiler.{Config, Log}
+import scalaxb.compiler.ConfigEntry.{CardinalityMaxBound, GenerateScalacheckGenerator, Outdir, PackageNames}
 
 class GeneratorEventTest extends TestBase {
+  Log.configureLogger(true)
   val inFile = new File("integration/src/test/resources/event.xsd")
   val usageFile = new File(tmp, "GeneratorEvent.scala")
   copyFileFromResource("GeneratorEvent.scala", usageFile)
@@ -12,6 +13,7 @@ class GeneratorEventTest extends TestBase {
     .update(PackageNames(Map(None -> Some("event"))))
     .update(Outdir(tmp))
     .update(GenerateScalacheckGenerator)
+    .update(CardinalityMaxBound(10))
 
   lazy val generated: Seq[File] = module.process(inFile, config)
 

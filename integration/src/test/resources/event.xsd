@@ -6,6 +6,7 @@
             <xs:element minOccurs="0" maxOccurs="3" name='multipleList' type='xs:date'/>
             <xs:element minOccurs="0" maxOccurs="3" name='multipleLocation' type='Location'/>
             <xs:element minOccurs="0" maxOccurs="1" name='optionalLocation' type='Location'/>
+            <xs:element minOccurs="0" maxOccurs="unbounded" name='unboundedDate' type='xs:date'/>
             <xs:element name='singleLocation' type='Location'/>
         </xs:sequence>
     </xs:complexType>

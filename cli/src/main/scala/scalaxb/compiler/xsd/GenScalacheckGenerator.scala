@@ -44,7 +44,7 @@ class GenScalacheckGeneratorImpl(var config: Config)
       params.map(x =>
         (
           lowerCaseFirstChar(x.name),
-          Gen(x.typeSymbol, x.cardinality, config.useLists, x.choices)
+          Gen(x.typeSymbol, x.cardinality, config.useLists, x.choices, config.cardinalityUpperBound)
         )
       ) map {
         case (genName, genType) => ScalacheckGenerator.forline(genName, genType)
@@ -82,7 +82,8 @@ trait ScalacheckGenerator[T] {
       xsTypeSymbol: T,
       cardinality: Cardinality,
       useList: Boolean,
-      choices: Option[ChoiceDecl]
+      choices: Option[ChoiceDecl],
+      cardinalityMaxBound: Int
   ): String
 }
 
@@ -113,15 +114,16 @@ object ScalacheckGenerator {
         xsTypeSymbol: XsTypeSymbol,
         cardinality: Cardinality,
         useList: Boolean,
-        choice: Option[ChoiceDecl]
+        choice: Option[ChoiceDecl],
+        cardinalityMaxBound: Int
     ): String =
       xsTypeSymbol match {
         case symbol: ReferenceTypeSymbol =>
-          RefGenMaker(symbol, cardinality, useList, choice)
+          RefGenMaker(symbol, cardinality, useList, choice, cardinalityMaxBound)
         case symbol: BuiltInSimpleTypeSymbol =>
-          SimpleGenMaker(symbol, cardinality, useList, choice)
+          SimpleGenMaker(symbol, cardinality, useList, choice, cardinalityMaxBound)
         case symbol: XsDataRecord =>
-          XsDataRecordGenerator(symbol, cardinality, useList, choice)
+          XsDataRecordGenerator(symbol, cardinality, useList, choice, cardinalityMaxBound)
         case _ => throw new Exception
       }
   }
@@ -129,7 +131,8 @@ object ScalacheckGenerator {
   def makeTypeCardinality(
       cardinality: Cardinality,
       innerGen: String,
-      useLists: Boolean
+      useLists: Boolean,
+      cardinalityMaxBound: Int
   ): String =
     cardinality match {
       case Optional =>
@@ -137,7 +140,11 @@ object ScalacheckGenerator {
       case Single => innerGen
       case Multiple(minOccurs, maxOccurs) =>
         val listGeneration =
-          s"Gen.choose($minOccurs, $maxOccurs).flatMap(Gen.listOfN(_, $innerGen))"
+          if (maxOccurs == Integer.MAX_VALUE)
+            s"Gen.choose($minOccurs, $cardinalityMaxBound).flatMap(Gen.listOfN(_, $innerGen))"
+          else
+            s"Gen.choose($minOccurs, $maxOccurs).flatMap(Gen.listOfN(_, $innerGen))"
+
         if (useLists)
           s"$listGeneration"
         else
@@ -149,17 +156,19 @@ object ScalacheckGenerator {
         symbol: ReferenceTypeSymbol,
         cardinality: Cardinality,
         useLists: Boolean,
-        choice: Option[ChoiceDecl]
+        choice: Option[ChoiceDecl],
+        cardinalityMaxBound: Int,
     ): String = {
       def makeGenRef(
           typeName: String,
           cardinality: Cardinality,
-          useLists: Boolean
+          useLists: Boolean,
+          cardinalityMaxBound: Int,
       ): String = {
         val innerGen = s"$typeName.${lowerCaseFirstChar(typeName)}Gen"
-        makeTypeCardinality(cardinality, innerGen, useLists)
+        makeTypeCardinality(cardinality, innerGen, useLists, cardinalityMaxBound)
       }
-      makeGenRef(symbol.name, cardinality, useLists)
+      makeGenRef(symbol.name, cardinality, useLists, cardinalityMaxBound)
     }
   }
 
@@ -169,7 +178,8 @@ object ScalacheckGenerator {
         xsTypeSymbol: XsDataRecord,
         cardinality: Cardinality,
         useList: Boolean,
-        choices: Option[ChoiceDecl]
+        choices: Option[ChoiceDecl],
+        cardinalityMaxBound: Int
     ): String =
       xsTypeSymbol.member match {
         case ReferenceTypeSymbol(_) =>
@@ -183,7 +193,8 @@ object ScalacheckGenerator {
                   e.typeSymbol,
                   toCardinality(e.minOccurs, e.maxOccurs),
                   false,
-                  None
+                  None,
+                  cardinalityMaxBound
                 )
               )
           }
@@ -210,7 +221,8 @@ object ScalacheckGenerator {
         symbol: BuiltInSimpleTypeSymbol,
         cardinality: Cardinality,
         useList: Boolean,
-        choice: Option[ChoiceDecl]
+        choice: Option[ChoiceDecl],
+        cardinalityMaxBound: Int,
     ): String = {
       def makeGeneratorName(t: BuiltInSimpleTypeSymbol): String =
         t match {
@@ -232,7 +244,7 @@ object ScalacheckGenerator {
             ??? //FIXME: There are lots of other simple types. Right now we support the most frequent ones.
         }
       val innerGen = makeGeneratorName(symbol) + "Gen"
-      makeTypeCardinality(cardinality, innerGen, useList)
+      makeTypeCardinality(cardinality, innerGen, useList, cardinalityMaxBound)
     }
   }
 
