@@ -28,6 +28,8 @@ class GenScalacheckGeneratorImpl(var config: Config)
     """
     |import scalacheck.generators._
     |import org.scalacheck.Gen
+    |import antimirov.Rx
+    |import antimirov.check.Regex
     |""".stripMargin
 
   def buildEnumGen(localName: String): String =
@@ -44,7 +46,13 @@ class GenScalacheckGeneratorImpl(var config: Config)
       params.map(x =>
         (
           lowerCaseFirstChar(x.name),
-          Gen(x.typeSymbol, x.cardinality, config.useLists, x.choices, config.cardinalityUpperBound)
+          Gen(
+            x.typeSymbol,
+            x.cardinality,
+            config.useLists,
+            x.choices,
+            config.cardinalityUpperBound
+          )
         )
       ) map {
         case (genName, genType) => ScalacheckGenerator.forline(genName, genType)
@@ -121,9 +129,21 @@ object ScalacheckGenerator {
         case symbol: ReferenceTypeSymbol =>
           RefGenMaker(symbol, cardinality, useList, choice, cardinalityMaxBound)
         case symbol: BuiltInSimpleTypeSymbol =>
-          SimpleGenMaker(symbol, cardinality, useList, choice, cardinalityMaxBound)
+          SimpleGenMaker(
+            symbol,
+            cardinality,
+            useList,
+            choice,
+            cardinalityMaxBound
+          )
         case symbol: XsDataRecord =>
-          XsDataRecordGenerator(symbol, cardinality, useList, choice, cardinalityMaxBound)
+          XsDataRecordGenerator(
+            symbol,
+            cardinality,
+            useList,
+            choice,
+            cardinalityMaxBound
+          )
         case _ => throw new Exception
       }
   }
@@ -157,18 +177,32 @@ object ScalacheckGenerator {
         cardinality: Cardinality,
         useLists: Boolean,
         choice: Option[ChoiceDecl],
-        cardinalityMaxBound: Int,
+        cardinalityMaxBound: Int
     ): String = {
-      def makeGenRef(
-          typeName: String,
-          cardinality: Cardinality,
-          useLists: Boolean,
-          cardinalityMaxBound: Int,
-      ): String = {
-        val innerGen = s"$typeName.${lowerCaseFirstChar(typeName)}Gen"
-        makeTypeCardinality(cardinality, innerGen, useLists, cardinalityMaxBound)
+      symbol.decl match {
+        case _: ComplexTypeDecl =>
+          val innerGen = s"${symbol.name}.${lowerCaseFirstChar(symbol.name)}Gen"
+          makeTypeCardinality(
+            cardinality,
+            innerGen,
+            useLists,
+            cardinalityMaxBound
+          )
+        case s: SimpleTypeDecl =>
+          s.content match {
+            case SimpTypRestrictionDecl(base, facets) =>
+              facets.map {
+                //TODO: In future work, It's better to move pattern generation outside of case class generation like enumerations
+                case PatternDecl(value) =>
+                  s"""Regex.gen(Rx.parse("$value")).flatMap(x => ${makeTypeCardinality(
+                    cardinality,
+                    "x",
+                    useLists,
+                    cardinalityMaxBound
+                  )})""".stripMargin
+              }.head //TODO: Check if what there is more than pattern
+          }
       }
-      makeGenRef(symbol.name, cardinality, useLists, cardinalityMaxBound)
     }
   }
 
@@ -222,7 +256,7 @@ object ScalacheckGenerator {
         cardinality: Cardinality,
         useList: Boolean,
         choice: Option[ChoiceDecl],
-        cardinalityMaxBound: Int,
+        cardinalityMaxBound: Int
     ): String = {
       def makeGeneratorName(t: BuiltInSimpleTypeSymbol): String =
         t match {

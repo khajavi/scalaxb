@@ -30,6 +30,9 @@ object Dependencies {
   val monocleMacro = "com.github.julien-truffaut" %% "monocle-macro" % "2.0.3"
   val scalacheck = "org.scalacheck" %% "scalacheck" % "1.14.1"
   val scalachecktoolbox = "com.47deg" %% "scalacheck-toolbox-datetime" % "0.4.0"
+  val antimirovCore = "org.spire-math" %% "antimirov-core" % "0.2.4"
+  val antimirovCheck = "org.spire-math" %% "antimirov-check" % "0.2.4"
+  val antimirovProps = "org.spire-math" %% "antimirov-props" % "0.2.4"
   
   def scalaCompiler(sv: String) = "org.scala-lang" % "scala-compiler" % sv
 
@@ -64,6 +67,9 @@ object Dependencies {
     monocleCore % Test,
     monocleMacro % Test,
     scalacheck % Test,
-    scalachecktoolbox % Test
+    scalachecktoolbox % Test,
+    antimirovCore % Test,
+    antimirovCheck % Test,
+    antimirovProps % Test
   )
 }

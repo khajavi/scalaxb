@@ -32,7 +32,27 @@
             <xs:choice>
                 <xs:element name="phoneNumber" type="xs:int"/>
                 <xs:element name="email" type="xs:string"/>
+                <xs:element name="address" type="Address"/>
             </xs:choice>
         </xs:complexType>
     </xs:element>
+    <xs:complexType name="Address">
+        <xs:sequence>
+            <xs:element minOccurs="0" name="street" type="xs:string"/>
+            <xs:element minOccurs="0" name="city" type="xs:string"/>
+            <xs:element minOccurs="0" name="state" type="xs:string"/>
+            <xs:element minOccurs="0" name="postalCode" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:simpleType name="ActiveCurrencyCode">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z]{3,3}"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:complexType name="Order">
+        <xs:sequence>
+            <xs:element name="currency" minOccurs="0" maxOccurs="1" type="ActiveCurrencyCode"/>
+            <xs:element name="location" type="Address"/>
+        </xs:sequence>
+    </xs:complexType>
 </xs:schema>

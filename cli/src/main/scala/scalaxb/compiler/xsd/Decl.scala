@@ -470,7 +470,7 @@ object ElemDecl {
 }
 
 
-trait TypeDecl extends Decl with Annotatable {
+sealed trait TypeDecl extends Decl with Annotatable {
   def namespace: Option[String]
   def name: String
 }

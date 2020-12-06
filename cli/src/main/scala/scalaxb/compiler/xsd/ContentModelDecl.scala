@@ -207,6 +207,8 @@ object Facetable {
   def fromParent(node: scala.xml.Node, base: XsTypeSymbol, config: ParserConfig): List[Facetable[_]] = 
     node.child.toList collect {
       case x@(<enumeration>{ _* }</enumeration>) => EnumerationDecl.fromXML(x, base, config)
+      case x@(<pattern>{ _* }</pattern>) => 
+       PatternDecl.fromXML(x, base, config)
       //TODO: Add other cases of constraining facets.
     }
 }
@@ -221,5 +223,18 @@ object EnumerationDecl {
         val qname = new javax.xml.namespace.QName(ns.orNull, localPart)
         EnumerationDecl(qname)
       case _ => EnumerationDecl((node \ "@value").text)
+    }
+}
+
+case class PatternDecl[A](value: A) extends Facetable[A]
+
+object PatternDecl {
+  def fromXML(node: scala.xml.Node, base: XsTypeSymbol, config: ParserConfig) =
+    base match {
+      case XsQName =>
+        val (ns, localPart) = TypeSymbolParser.splitTypeName((node \ "@value").text, config.scope, config.targetNamespace)
+        val qname = new javax.xml.namespace.QName(ns.orNull, localPart)
+        PatternDecl(qname)
+      case _ => PatternDecl((node \ "@value").text)
     }
 }
