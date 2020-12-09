@@ -207,8 +207,9 @@ object Facetable {
   def fromParent(node: scala.xml.Node, base: XsTypeSymbol, config: ParserConfig): List[Facetable[_]] = 
     node.child.toList collect {
       case x@(<enumeration>{ _* }</enumeration>) => EnumerationDecl.fromXML(x, base, config)
-      case x@(<pattern>{ _* }</pattern>) => 
-       PatternDecl.fromXML(x, base, config)
+      case x@(<pattern>{ _* }</pattern>) => PatternDecl.fromXML(x, base, config)
+      case x@(<minLength>{ _* }</minLength>) => MinLengthDecl.fromXML(x, base, config)
+      case x@(<maxLength>{ _* }</maxLength>) => MaxLengthDecl.fromXML(x, base, config)
       //TODO: Add other cases of constraining facets.
     }
 }
@@ -236,5 +237,25 @@ object PatternDecl {
         val qname = new javax.xml.namespace.QName(ns.orNull, localPart)
         PatternDecl(qname)
       case _ => PatternDecl((node \ "@value").text)
+    }
+}
+
+case class MinLengthDecl[A](value: A) extends Facetable[A]
+
+object MinLengthDecl {
+  def fromXML(node: scala.xml.Node, base: XsTypeSymbol, config: ParserConfig) =
+    base match {
+      case _: BuiltInSimpleTypeSymbol => MinLengthDecl((node \ "@value").text.toInt)
+      case _ => ???
+    }
+}
+
+case class MaxLengthDecl[A](value: A) extends Facetable[A]
+
+object MaxLengthDecl {
+  def fromXML(node: scala.xml.Node, base: XsTypeSymbol, config: ParserConfig) =
+    base match {
+      case _: BuiltInSimpleTypeSymbol => MaxLengthDecl((node \ "@value").text.toInt)
+      case _ => ???
     }
 }

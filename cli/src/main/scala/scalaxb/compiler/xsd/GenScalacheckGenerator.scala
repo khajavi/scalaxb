@@ -191,16 +191,67 @@ object ScalacheckGenerator {
         case s: SimpleTypeDecl =>
           s.content match {
             case SimpTypRestrictionDecl(base, facets) =>
-              facets.map {
-                //TODO: In future work, It's better to move pattern generation outside of case class generation like enumerations
-                case PatternDecl(value) =>
-                  s"""Regex.gen(Rx.parse("$value")).flatMap(x => ${makeTypeCardinality(
+              case class Restriction(
+                  base: XsTypeSymbol,
+                  minLength: Option[Int],
+                  maxLength: Option[Int],
+                  pattern: Option[String],
+                  hasEnumeration: Boolean
+              )
+              val restriction = facets
+                .foldLeft(
+                  Restriction(base, None, None, None, hasEnumeration = false)
+                ) { (x, y) =>
+                  y match {
+                    case MaxLengthDecl(value: Int) =>
+                      x.copy(maxLength = Some(value))
+                    case MinLengthDecl(value: Int) =>
+                      x.copy(minLength = Some(value))
+                    case PatternDecl(value: String) =>
+                      x.copy(pattern = Some(value))
+                    case EnumerationDecl(_) =>
+                      x.copy(hasEnumeration = true)
+                  }
+                }
+              restriction match {
+                case Restriction(_, _, _, _, true) =>
+                  val innerGen =
+                    s"${symbol.name}.${lowerCaseFirstChar(symbol.name)}Gen"
+                  makeTypeCardinality(
+                    cardinality,
+                    innerGen,
+                    useLists,
+                    cardinalityMaxBound
+                  )
+                case Restriction(_, _, _, Some(pattern), _) =>
+                  s"""Regex.gen(Rx.parse("$pattern")).flatMap(x => ${makeTypeCardinality(
                     cardinality,
                     "x",
                     useLists,
                     cardinalityMaxBound
                   )})""".stripMargin
-              }.head //TODO: Check if what there is more than pattern
+                case Restriction(_, Some(minLength), Some(maxLength), _, _) =>
+                  s"""|(for {
+                      |  numElems <- Gen.choose($minLength, $maxLength)
+                      |  elems <- Gen.listOfN(numElems, Gen.alphaNumChar)
+                      |  str <- elems.mkString
+                      |} yield str).flatMap(x => ${makeTypeCardinality(
+                    cardinality,
+                    innerGen = "x",
+                    useLists,
+                    cardinalityMaxBound
+                  )})""".stripMargin
+                case Restriction(_, None, None, None, false) =>
+                  s"""${symbol.name}.${lowerCaseFirstChar(
+                    symbol.name
+                  )}Gen.flatMap(x => ${makeTypeCardinality(
+                    cardinality,
+                    innerGen = "x",
+                    useLists,
+                    cardinalityMaxBound
+                  )})"""
+                case _ => ???
+              }
           }
       }
     }
@@ -234,7 +285,9 @@ object ScalacheckGenerator {
           }
 
           def datarecordGen(key: String) =
-            s"""scalaxb.DataRecord(None, Some("$key"), $key)"""
+            s"""scalaxb.DataRecord(None, Some("$key"), ${lowerCaseFirstChar(
+              key
+            )})"""
 
           s"""for {
              |${nametypes.map(x => forline(x._1, x._2)).mkString("\n")}
