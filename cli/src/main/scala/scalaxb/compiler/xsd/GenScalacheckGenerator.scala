@@ -224,7 +224,7 @@ object ScalacheckGenerator {
                     cardinalityMaxBound
                   )
                 case Restriction(_, _, _, Some(pattern), _) =>
-                  s"""Regex.gen(Rx.parse("$pattern")).flatMap(x => ${makeTypeCardinality(
+                  s"""Regex.gen(Rx.parse(raw"$pattern".r.regex)).flatMap(x => ${makeTypeCardinality(
                     cardinality,
                     "x",
                     useLists,

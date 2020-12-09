@@ -30,9 +30,10 @@
     <xs:element name="ContactInfo">
         <xs:complexType>
             <xs:choice>
-                <xs:element name="phoneNumber" type="xs:int"/>
+                <xs:element name="phoneNumber" type="PhoneNumber"/>
                 <xs:element name="email" type="xs:string"/>
                 <xs:element name="address" type="Address"/>
+                <xs:element name="location" type="Location"/>
             </xs:choice>
         </xs:complexType>
     </xs:element>
@@ -78,4 +79,9 @@
             <xs:element name="note" type="Max35Text" />
         </xs:choice>
     </xs:complexType>
+    <xs:simpleType name="PhoneNumber">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\+[0-9]{1,3}-[0-9()+\-]{1,30}"/>
+        </xs:restriction>
+    </xs:simpleType>
 </xs:schema>
