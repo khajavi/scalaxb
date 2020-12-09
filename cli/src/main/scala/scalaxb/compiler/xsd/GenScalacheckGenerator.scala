@@ -45,7 +45,7 @@ class GenScalacheckGeneratorImpl(var config: Config)
     )(implicit Gen: ScalacheckGenerator[XsTypeSymbol]): String =
       params.map(x =>
         (
-          lowerCaseFirstChar(x.name),
+          x.name + "Gen",
           Gen(
             x.typeSymbol,
             x.cardinality,
@@ -68,7 +68,7 @@ class GenScalacheckGeneratorImpl(var config: Config)
     s"""
        |def ${lowerCaseFirstChar(localName)}Gen = for {
        |${forlines(param)(XsTypeSymbolGen).blockIndent(1)}
-       |} yield ${localName}(${param.map(_.name).mkString(", ")})
+       |} yield ${localName}(${param.map(_.name + "Gen").mkString(", ")})
        |""".stripMargin
   }
 
@@ -97,7 +97,7 @@ trait ScalacheckGenerator[T] {
 
 object ScalacheckGenerator {
   def forline(paramName: String, paramType: String): String =
-    s"${lowerCaseFirstChar(paramName)} <- ${paramType}"
+    s"${paramName} <- ${paramType}"
 
   def lowerCaseFirstChar(s: String): String = {
     val chars = s.toCharArray
@@ -242,14 +242,11 @@ object ScalacheckGenerator {
                     cardinalityMaxBound
                   )})""".stripMargin
                 case Restriction(_, None, None, None, false) =>
-                  s"""${symbol.name}.${lowerCaseFirstChar(
-                    symbol.name
-                  )}Gen.flatMap(x => ${makeTypeCardinality(
-                    cardinality,
-                    innerGen = "x",
-                    useLists,
-                    cardinalityMaxBound
-                  )})"""
+                  base match {
+                    case sym: BuiltInSimpleTypeSymbol =>
+                      SimpleGenMaker.apply(sym, cardinality, useLists, choice, cardinalityMaxBound)
+                    case _ => ???
+                  }
                 case _ => ???
               }
           }
@@ -285,9 +282,7 @@ object ScalacheckGenerator {
           }
 
           def datarecordGen(key: String) =
-            s"""scalaxb.DataRecord(None, Some("$key"), ${lowerCaseFirstChar(
-              key
-            )})"""
+            s"""scalaxb.DataRecord(None, Some("$key"), $key)"""
 
           s"""for {
              |${nametypes.map(x => forline(x._1, x._2)).mkString("\n")}
