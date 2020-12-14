@@ -144,6 +144,8 @@ object ScalacheckGenerator {
             choice,
             cardinalityMaxBound
           )
+        case xsWildcard: XsWildcard =>
+          ???
         case _ => throw new Exception
       }
   }
@@ -181,7 +183,7 @@ object ScalacheckGenerator {
     ): String = {
       symbol.decl match {
         case _: ComplexTypeDecl =>
-          val innerGen = s"${symbol.name}.${lowerCaseFirstChar(symbol.name)}Gen"
+          val innerGen = s"${symbol.localPart}.${lowerCaseFirstChar(symbol.localPart)}Gen"
           makeTypeCardinality(
             cardinality,
             innerGen,
@@ -216,7 +218,7 @@ object ScalacheckGenerator {
               restriction match {
                 case Restriction(_, _, _, _, true) =>
                   val innerGen =
-                    s"${symbol.name}.${lowerCaseFirstChar(symbol.name)}Gen"
+                    s"${symbol.localPart}.${lowerCaseFirstChar(symbol.localPart)}Gen"
                   makeTypeCardinality(
                     cardinality,
                     innerGen,
@@ -230,17 +232,35 @@ object ScalacheckGenerator {
                     useLists,
                     cardinalityMaxBound
                   )})""".stripMargin
-                case Restriction(_, Some(minLength), Some(maxLength), _, _) =>
-                  s"""|(for {
-                      |  numElems <- Gen.choose($minLength, $maxLength)
-                      |  elems <- Gen.listOfN(numElems, Gen.alphaNumChar)
-                      |  str <- elems.mkString
-                      |} yield str).flatMap(x => ${makeTypeCardinality(
-                    cardinality,
-                    innerGen = "x",
-                    useLists,
-                    cardinalityMaxBound
-                  )})""".stripMargin
+                case Restriction(base, Some(minLength), Some(maxLength), _, _) =>
+                  base match {
+                    case symbol: BuiltInSimpleTypeSymbol => symbol match {
+                      case XsBase64Binary =>
+                        s"""|(for {
+                            |  numElems <- Gen.choose($minLength, $maxLength)
+                            |  elems <- Gen.listOfN(numElems, Gen.alphaNumChar)
+                            |  str <- elems.mkString
+                            |} yield str).flatMap(x => ${makeTypeCardinality(
+                          cardinality,
+                          innerGen = "x",
+                          useLists,
+                          cardinalityMaxBound
+                        )}).flatMap(x => scalaxb.Base64Binary(x))""".stripMargin
+                      case XsString =>
+                        s"""|(for {
+                            |  numElems <- Gen.choose($minLength, $maxLength)
+                            |  elems <- Gen.listOfN(numElems, Gen.alphaNumChar)
+                            |  str <- elems.mkString
+                            |} yield str).flatMap(x => ${makeTypeCardinality(
+                          cardinality,
+                          innerGen = "x",
+                          useLists,
+                          cardinalityMaxBound
+                        )})""".stripMargin
+                      case _ => ???
+                    }
+                    case _ => ???
+                  }
                 case Restriction(_, None, None, None, false) =>
                   base match {
                     case sym: BuiltInSimpleTypeSymbol =>

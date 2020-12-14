@@ -1,11 +1,19 @@
 import java.io.File
 
 import scalaxb.compiler.{Config, Log}
-import scalaxb.compiler.ConfigEntry.{CardinalityMaxBound, GenerateScalacheckGenerator, Outdir, PackageNames}
+import scalaxb.compiler.ConfigEntry.{
+  CardinalityMaxBound,
+  GenerateScalacheckGenerator,
+  NamedAttributes,
+  Outdir,
+  PackageNames
+}
 
 class GeneratorEventTest extends TestBase {
-  Log.configureLogger(true)
-  val inFile = new File("integration/src/test/resources/event.xsd")
+//  Log.configureLogger(true)
+  val event    = new File("integration/src/test/resources/event.xsd")
+  val pacs_008_001_09 = new File("integration/src/test/resources/pacs.008.001.09.xsd")
+  val pacs_009_001_08 = new File("integration/src/test/resources/pacs.009.001.08.xsd")
   val usageFile = new File(tmp, "GeneratorEvent.scala")
   copyFileFromResource("GeneratorEvent.scala", usageFile)
 
@@ -13,9 +21,16 @@ class GeneratorEventTest extends TestBase {
     .update(PackageNames(Map(None -> Some("event"))))
     .update(Outdir(tmp))
     .update(GenerateScalacheckGenerator)
+    .update(NamedAttributes)
     .update(CardinalityMaxBound(10))
 
-  lazy val generated: Seq[File] = module.process(inFile, config)
+  lazy val generated: Seq[File] = module.processFiles(
+    List(
+      event,
+//      pacs_008_001_09
+    ),
+    config
+  )
 
   "event.scala file must compile so Event can be used" in {
     (
