@@ -245,7 +245,15 @@ object ScalacheckGenerator {
                           innerGen = "x",
                           useLists,
                           cardinalityMaxBound
-                        )}).flatMap(x => scalaxb.Base64Binary(x))""".stripMargin
+                        )
+                        })${
+                          cardinality match {
+                            case Optional | Multiple(_, _) => ".flatMap(_.map(scalaxb.Base64Binary(_)))"
+                            case Single => ".flatMap(scalaxb.Base64Binary(_))"
+                          }
+                        }""".stripMargin
+
+                        
                       case XsString =>
                         s"""|(for {
                             |  numElems <- Gen.choose($minLength, $maxLength)

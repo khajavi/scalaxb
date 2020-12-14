@@ -92,7 +92,7 @@
     </xs:simpleType>
     <xs:complexType name="Data">
         <xs:sequence>
-            <xs:element name="binaryData" type="Max10KBinary"/>
+            <xs:element minOccurs="0" maxOccurs="5" name="binaryData" type="Max10KBinary"/>
         </xs:sequence>
     </xs:complexType>
 </xs:schema>
