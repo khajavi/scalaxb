@@ -225,12 +225,13 @@ object ScalacheckGenerator {
                   }
                 }
               restriction match {
-                case Restriction(base, _, _, _, _, Some(fractionDigits), Some(totalDigits), Some(minInclusive)) =>
+                case Restriction(base, _, _, _, _, Some(fractionDigits), Some(totalDigits), minInclusive) =>
                   base match {
                     case symbol: BuiltInSimpleTypeSymbol => symbol match {
                       case XsDecimal =>
                         val integralDigits = totalDigits - fractionDigits
-                        s"""decimalGen($integralDigits, $fractionDigits, $minInclusive)"""
+                        val innerGen = s"""decimalGen($integralDigits, $fractionDigits, ${minInclusive.getOrElse(0)})"""
+                        makeTypeCardinality(cardinality, innerGen, useLists, cardinalityMaxBound)
                       case _ => ???
                     }
                     case _ => ???
