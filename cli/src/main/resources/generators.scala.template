@@ -51,4 +51,9 @@ object generators {
   val timeGen: Gen[XMLGregorianCalendar] = pastDateGen //FIXME
   val dateTimeGen: Gen[XMLGregorianCalendar] = pastDateGen //FIXME
 //  val durationGen: Gen[datatype.Duration] = ??? //FIXME
+
+  def decimalGen(integralDigits: Int, fractionalDigits: Int, minInclusive: Int): Gen[BigDecimal] = for {
+    integral <- Gen.choose[Int](minInclusive, Math.pow(10, integralDigits).toInt - 1)
+    fractional <- Gen.choose[Int](0, Math.pow(10, fractionalDigits).toInt - 1)
+  } yield BigDecimal(s"$integral.$fractional")
 }

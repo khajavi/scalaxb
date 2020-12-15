@@ -95,4 +95,18 @@
             <xs:element minOccurs="0" maxOccurs="5" name="binaryData" type="Max10KBinary"/>
         </xs:sequence>
     </xs:complexType>
+    <xs:simpleType name="ActiveCurrencyAndAmount_SimpleType">
+        <xs:restriction base="xs:decimal">
+            <xs:fractionDigits value="5"/>
+            <xs:totalDigits value="18"/>
+            <xs:minInclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:complexType name="ActiveCurrencyAndAmount">
+        <xs:simpleContent>
+            <xs:extension base="ActiveCurrencyAndAmount_SimpleType">
+                <xs:attribute name="Ccy" type="ActiveCurrencyCode" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
 </xs:schema>

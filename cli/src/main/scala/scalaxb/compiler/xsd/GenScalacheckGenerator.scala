@@ -198,7 +198,10 @@ object ScalacheckGenerator {
                   minLength: Option[Int],
                   maxLength: Option[Int],
                   pattern: Option[String],
-                  hasEnumeration: Boolean
+                  hasEnumeration: Boolean,
+                  fractionDigits: Option[Int] = None,
+                  totalDigits: Option[Int] = None,
+                  minInclusive: Option[Int] = None
               )
               val restriction = facets
                 .foldLeft(
@@ -213,10 +216,26 @@ object ScalacheckGenerator {
                       x.copy(pattern = Some(value))
                     case EnumerationDecl(_) =>
                       x.copy(hasEnumeration = true)
+                    case FractionDigitsDecl(value: Int) =>
+                      x.copy(fractionDigits = Some(value))
+                    case TotalDigitsDecl(value: Int) =>
+                      x.copy(totalDigits = Some(value))
+                    case MinInclusiveDecl(value: Int) =>
+                      x.copy(minInclusive = Some(value))
                   }
                 }
               restriction match {
-                case Restriction(_, _, _, _, true) =>
+                case Restriction(base, _, _, _, _, Some(fractionDigits), Some(totalDigits), Some(minInclusive)) =>
+                  base match {
+                    case symbol: BuiltInSimpleTypeSymbol => symbol match {
+                      case XsDecimal =>
+                        val integralDigits = totalDigits - fractionDigits
+                        s"""decimalGen($integralDigits, $fractionDigits, $minInclusive)"""
+                      case _ => ???
+                    }
+                    case _ => ???
+                  }
+                case Restriction(_, _, _, _, true, _, _, _) =>
                   val innerGen =
                     s"${symbol.localPart}.${lowerCaseFirstChar(symbol.localPart)}Gen"
                   makeTypeCardinality(
@@ -225,14 +244,14 @@ object ScalacheckGenerator {
                     useLists,
                     cardinalityMaxBound
                   )
-                case Restriction(_, _, _, Some(pattern), _) =>
+                case Restriction(_, _, _, Some(pattern), _, _, _, _) =>
                   s"""Regex.gen(Rx.parse(raw"$pattern".r.regex)).flatMap(x => ${makeTypeCardinality(
                     cardinality,
                     "x",
                     useLists,
                     cardinalityMaxBound
                   )})""".stripMargin
-                case Restriction(base, Some(minLength), Some(maxLength), _, _) =>
+                case Restriction(base, Some(minLength), Some(maxLength), _, _, _, _, _) =>
                   base match {
                     case symbol: BuiltInSimpleTypeSymbol => symbol match {
                       case XsBase64Binary =>
@@ -269,7 +288,7 @@ object ScalacheckGenerator {
                     }
                     case _ => ???
                   }
-                case Restriction(_, None, None, None, false) =>
+                case Restriction(_, None, None, None, false, _, _, _) =>
                   base match {
                     case sym: BuiltInSimpleTypeSymbol =>
                       SimpleGenMaker.apply(sym, cardinality, useLists, choice, cardinalityMaxBound)

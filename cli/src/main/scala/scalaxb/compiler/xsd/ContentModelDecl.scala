@@ -210,6 +210,9 @@ object Facetable {
       case x@(<pattern>{ _* }</pattern>) => PatternDecl.fromXML(x, base, config)
       case x@(<minLength>{ _* }</minLength>) => MinLengthDecl.fromXML(x, base, config)
       case x@(<maxLength>{ _* }</maxLength>) => MaxLengthDecl.fromXML(x, base, config)
+      case x@(<fractionDigits>{ _* }</fractionDigits>) => FractionDigitsDecl.fromXML(x, base, config)
+      case x@(<totalDigits>{ _* }</totalDigits>) => TotalDigitsDecl.fromXML(x, base, config)
+      case x@(<minInclusive>{ _* }</minInclusive>) => MinInclusiveDecl.fromXML(x, base, config)
       //TODO: Add other cases of constraining facets.
     }
 }
@@ -256,6 +259,33 @@ object MaxLengthDecl {
   def fromXML(node: scala.xml.Node, base: XsTypeSymbol, config: ParserConfig) =
     base match {
       case _: BuiltInSimpleTypeSymbol => MaxLengthDecl((node \ "@value").text.toInt)
+      case _ => ???
+    }
+}
+
+case class FractionDigitsDecl[A](value: A) extends Facetable[A]
+object FractionDigitsDecl {
+  def fromXML(node: scala.xml.Node, base: XsTypeSymbol, config: ParserConfig) =
+    base match {
+      case _: BuiltInSimpleTypeSymbol => FractionDigitsDecl((node \ "@value").text.toInt)
+      case _ => ???
+    }
+}
+
+case class TotalDigitsDecl[A](value: A) extends Facetable[A]
+object TotalDigitsDecl {
+  def fromXML(node: scala.xml.Node, base: XsTypeSymbol, config: ParserConfig) =
+    base match {
+      case _: BuiltInSimpleTypeSymbol => TotalDigitsDecl((node \ "@value").text.toInt)
+      case _ => ???
+    }
+}
+
+case class MinInclusiveDecl[A](value: A) extends Facetable[A]
+object MinInclusiveDecl {
+  def fromXML(node: scala.xml.Node, base: XsTypeSymbol, config: ParserConfig) =
+    base match {
+      case _: BuiltInSimpleTypeSymbol => MinInclusiveDecl((node \ "@value").text.toInt)
       case _ => ???
     }
 }
