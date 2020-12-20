@@ -1,13 +1,7 @@
 import java.io.File
 
 import scalaxb.compiler.{Config, Log}
-import scalaxb.compiler.ConfigEntry.{
-  CardinalityMaxBound,
-  GenerateScalacheckGenerator,
-  NamedAttributes,
-  Outdir,
-  PackageNames
-}
+import scalaxb.compiler.ConfigEntry.{CardinalityMaxBound, GenerateScalacheckGenerator, NamedAttributes, Outdir, PackageNames, UserDefinedGenerators}
 
 class GeneratorEventTest extends TestBase {
 //  Log.configureLogger(true)
@@ -23,6 +17,16 @@ class GeneratorEventTest extends TestBase {
     .update(GenerateScalacheckGenerator)
     .update(NamedAttributes)
     .update(CardinalityMaxBound(10))
+    .update(
+      UserDefinedGenerators(
+        Map(
+          "Location" -> "myLocationGen", // Complex Type
+          "String" -> "myStringGen", // Simple Type
+          "DaysOfWeek" -> "myDaysOfWeekGen", // Enum Type
+          "ContactInfo" -> "myContactInfoGen" // Choice Type
+        )
+      )
+    )
 
   lazy val generated: Seq[File] = module.processFiles(
     List(

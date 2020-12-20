@@ -1,7 +1,9 @@
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:complexType name="Event">
         <xs:sequence>
-            <xs:element name='singleDate' type='xs:date'/>
+            <xs:element name='name' type='xs:string'/>
+            <xs:element name="day" type="DaysOfWeek" />
+            <xs:element name="contact" type="ContactInfo" />
             <xs:element minOccurs="0" maxOccurs="1" name='optionDate' type='xs:date'/>
             <xs:element minOccurs="0" maxOccurs="3" name='multipleList' type='xs:date'/>
             <xs:element minOccurs="0" maxOccurs="3" name='multipleLocation' type='Location'/>
@@ -16,7 +18,7 @@
             <xs:element name='city' type='xs:string'/>
         </xs:sequence>
     </xs:complexType>
-    <xs:simpleType name="daysOfWeek">
+    <xs:simpleType name="DaysOfWeek">
         <xs:restriction base="xs:string">
             <xs:enumeration value="Monday"/>
             <xs:enumeration value="Tuesday"/>
@@ -27,16 +29,14 @@
             <xs:enumeration value="Sunday"/>
         </xs:restriction>
     </xs:simpleType>
-    <xs:element name="ContactInfo">
-        <xs:complexType>
-            <xs:choice>
-                <xs:element name="phoneNumber" type="PhoneNumber"/>
-                <xs:element name="email" type="xs:string"/>
-                <xs:element name="address" type="Address"/>
-                <xs:element name="location" type="Location"/>
-            </xs:choice>
-        </xs:complexType>
-    </xs:element>
+    <xs:complexType name="ContactInfo">
+        <xs:choice>
+            <xs:element name="phoneNumber" type="PhoneNumber"/>
+            <xs:element name="email" type="xs:string"/>
+            <xs:element name="address" type="Address"/>
+            <xs:element name="location" type="Location"/>
+        </xs:choice>
+    </xs:complexType>
     <xs:complexType name="Address">
         <xs:sequence>
             <xs:element minOccurs="0" name="street" type="xs:string"/>

@@ -43,18 +43,18 @@ class GenScalacheckGeneratorImpl(var config: Config)
     def forlines(
         params: List[Params#Param]
     )(implicit Gen: ScalacheckGenerator[XsTypeSymbol]): String =
-      params.map(x =>
-        (
-          x.name + "Gen",
-          Gen(
-            x.typeSymbol,
-            x.cardinality,
-            config.useLists,
-            x.choices,
-            config.cardinalityUpperBound
-          )
-        )
-      ) map {
+      params.map{x =>
+        val generated =
+          if (config.userDefinedGenerators.contains(x.typeSymbol.name))
+            config.userDefinedGenerators(x.typeSymbol.name)
+          else
+            Gen(x.typeSymbol,
+              x.cardinality,
+              config.useLists,
+              x.choices,
+              config.cardinalityUpperBound)
+        (x.name + "Gen", generated)
+      } map {
         case (genName, genType) => ScalacheckGenerator.forline(genName, genType)
       } mkString "\n"
 

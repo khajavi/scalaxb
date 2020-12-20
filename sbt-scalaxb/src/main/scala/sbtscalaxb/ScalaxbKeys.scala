@@ -48,6 +48,7 @@ trait ScalaxbKeys {
   lazy val scalaxbEnumNameMaxLength = settingKey[Int]("Truncates names of enum members longer than this value (default: 50)")
   lazy val scalaxbUseLists  = settingKey[Boolean]("Declare sequences with concrete type List instead of Seq")
   lazy val scalaxbCardinalityMaxBound = settingKey[Int]("Defines max upperbound for cardinality (default: 10)")
+  lazy val scalaxbUserDefinedGenerators = settingKey[Map[String, String]]("User Defined Generator")
 
   object HttpClientType extends Enumeration {
     val None, Dispatch, Gigahorse = Value

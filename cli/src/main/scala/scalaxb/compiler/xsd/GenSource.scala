@@ -319,7 +319,9 @@ class GenSource(val schema: SchemaDecl,
     }
     
     val defScalacheckGenerators = config.generateScalacheckGenerator match {
-      case true => genScalacheckGenerator.buildDefScalacheckGenerator(localName, paramList).blockIndent(1)
+      case true =>
+        if (config.userDefinedGenerators.contains(localName)) "" else
+          genScalacheckGenerator.buildDefScalacheckGenerator(localName, paramList).blockIndent(1)
       case false => ""
     }
     
@@ -670,7 +672,7 @@ class GenSource(val schema: SchemaDecl,
     val enumString = enums.map(makeEnum).mkString(newline)
     val enumListString = enums.map(enum => buildTypeName(localName, enum, true)).mkString(", ")
     val enumValuesString = s"lazy val values: Seq[$localName] = Seq($enumListString)"
-    val enumScalacheckGeneratorString = if (config.generateScalacheckGenerator) genScalacheckGenerator.buildEnumGen(localName) else ""
+    val enumScalacheckGeneratorString = if (config.generateScalacheckGenerator && !config.userDefinedGenerators.contains(localName)) genScalacheckGenerator.buildEnumGen(localName) else ""
 
     def valueCode: String = baseSym match {
         case Some(XsQName) => """({ val (ns, localPart) = scalaxb.Helper.splitQName(value, scope)

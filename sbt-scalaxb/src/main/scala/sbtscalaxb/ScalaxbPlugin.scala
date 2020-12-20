@@ -139,7 +139,8 @@ object ScalaxbPlugin extends sbt.AutoPlugin {
         Vector(SymbolEncoding.withName(scalaxbSymbolEncodingStrategy.value.toString)) ++
         Vector(EnumNameMaxLength(scalaxbEnumNameMaxLength.value)) ++
         (if (scalaxbUseLists.value) Vector(UseLists) else Vector()) ++ 
-        Vector(CardinalityMaxBound(scalaxbCardinalityMaxBound.value))
+        Vector(CardinalityMaxBound(scalaxbCardinalityMaxBound.value)) ++ 
+        Vector(UserDefinedGenerators(scalaxbUserDefinedGenerators.value))
       )
   ))
 }

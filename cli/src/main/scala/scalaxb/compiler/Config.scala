@@ -84,6 +84,8 @@ case class Config(items: Map[String, ConfigEntry]) {
   def useLists: Boolean = values contains UseLists
   def cardinalityUpperBound: Int =
     (get[CardinalityMaxBound] getOrElse defaultCardinalityMaxBound).value
+  def userDefinedGenerators: Map[String, String] =
+    (get[UserDefinedGenerators] getOrElse defaultUserDefinedGenerators).value
 
   private def get[A <: ConfigEntry: Manifest]: Option[A] =
     items.get(implicitly[Manifest[A]].runtimeClass.getName).asInstanceOf[Option[A]]
@@ -99,6 +101,7 @@ object Config {
   def apply(xs: Vector[ConfigEntry]): Config =
     xs.foldLeft(new Config(Map())) { (acc, x) => acc.update(x) }
   val defaultPackageNames = PackageNames(Map(None -> None))
+  val defaultUserDefinedGenerators = UserDefinedGenerators(Map.empty)
   val defaultOpOutputWrapperPostfix = OpOutputWrapperPostfix(Defaults.opOutputWrapperPostfix)
   val defaultOutdir = Outdir(new File("."))
   val defaultWrappedComplexTypes = WrappedComplexTypes(Nil)
@@ -164,6 +167,7 @@ object ConfigEntry {
   case class EnumNameMaxLength(value: Int) extends ConfigEntry
   case object UseLists extends ConfigEntry
   case class CardinalityMaxBound(value: Int) extends ConfigEntry
+  case class UserDefinedGenerators(value: Map[String, String]) extends ConfigEntry
 
   object SymbolEncoding {
     sealed abstract class Strategy(val alias: String, val description: String) extends ConfigEntry with Product with Serializable {
